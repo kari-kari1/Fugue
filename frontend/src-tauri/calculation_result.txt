@@ -1,0 +1,3 @@
+计算结果: 2+2 = 4
+文件保存位置: E:\agentforge\frontend\src-tauri\calculation_result.txt
+保存时间: 2025-02-14 08:53:00

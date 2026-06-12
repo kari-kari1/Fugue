@@ -1,0 +1,62 @@
+# ─── Python ───
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+
+# ─── Virtual Environment ───
+venv/
+.venv/
+env/
+
+# ─── Environment Variables（安全：绝不提交） ───
+.env
+.env.local
+.env.*.local
+
+# ─── Database ───
+*.db
+*.sqlite
+*.sqlite3
+
+# ─── Node.js ───
+node_modules/
+frontend/dist/
+frontend/.vite/
+
+# ─── IDE ───
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ─── OS ───
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─── Docker ───
+*.log
+
+# ─── Tauri Build ───
+frontend/src-tauri/target/
+
+# ─── PyInstaller ───
+*.spec.bak
+
+# ─── Test & Coverage ───
+.coverage
+htmlcov/
+.pytest_cache/
+test-results/
+
+# ─── Project Temp ───
+logs/
+uploads/
+*.bak

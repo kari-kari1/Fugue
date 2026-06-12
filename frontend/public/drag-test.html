@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>拖拽测试</title>
+<style>
+  body { font-family: sans-serif; padding: 50px; background: #111; color: #fff; }
+  .drag { display: inline-block; padding: 16px 32px; background: #0071E3; color: #fff;
+          border-radius: 8px; cursor: grab; margin: 20px; user-select: none; }
+  .drop { width: 400px; height: 200px; border: 3px dashed #555; border-radius: 12px;
+          display: flex; align-items: center; justify-content: center; margin: 40px auto; }
+  .drop.over { border-color: #00FF00; background: rgba(0,255,0,0.1); }
+  #log { margin: 20px; color: #aaa; font-size: 14px; }
+</style></head>
+<body>
+  <h1>HTML5 Drag &amp; Drop 测试</h1>
+  <div class="drag" draggable="true" id="dragSource">拖拽我 → 到下面的方框</div>
+  <div class="drop" id="dropTarget">放这里</div>
+  <div id="log">事件日志：</div>
+
+  <script>
+    var log = document.getElementById('log');
+    function addLog(msg) { log.innerHTML += '<br>' + new Date().toLocaleTimeString() + ' ' + msg; }
+
+    document.getElementById('dragSource').addEventListener('dragstart', function(e) {
+      e.dataTransfer.setData('text/plain', 'test-data');
+      addLog('dragStart 触发');
+    });
+
+    var target = document.getElementById('dropTarget');
+    target.addEventListener('dragenter', function(e) {
+      e.preventDefault();
+      target.classList.add('over');
+      addLog('dragEnter 触发');
+    });
+    target.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+    });
+    target.addEventListener('dragleave', function(e) {
+      target.classList.remove('over');
+      addLog('dragLeave 触发');
+    });
+    target.addEventListener('drop', function(e) {
+      e.preventDefault();
+      target.classList.remove('over');
+      var data = e.dataTransfer.getData('text/plain');
+      addLog('DROP! 数据: ' + data);
+    });
+  </script>
+</body>
+</html>

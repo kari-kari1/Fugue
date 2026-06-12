@@ -1,0 +1,196 @@
+/*
+ * Fugue — 静态态设计 Token (Carbon Neutral Mode)
+ * 所有数值来自 Apple HIG / WWDC Session / apple.com 逆向工程
+ * 标注 (v) = 多源交叉验证
+ */
+
+:root {
+  /* ========== Colors ========== */
+
+  /* Light Mode — Flat Minimalism */
+  --bg-page:         #FBFBFD;          /* Apple 签名极浅灰白 (v) */
+  --bg-card:         #FFFFFF;          /* 纯白卡片 */
+  --bg-elevated:     #FFFFFF;          /* 模态框、弹出层 */
+  --bg-nav:          rgba(255, 255, 255, 0.80);  /* 轻量毛玻璃导航栏 */
+  --bg-overlay:      rgba(0, 0, 0, 0.4);        /* 遮罩层 */
+  --bg-canvas:       #FFFFFF;          /* 画布纯白 */
+
+  --text-primary:    #1D1D1F;          /* 近黑 — 非纯黑 (v) */
+  --text-secondary:  #6E6E73;          /* 次级文字 (v) */
+  --text-tertiary:   rgba(60, 60, 67, 0.3);   /* Apple Tertiary Label (v) */
+  --text-quaternary: rgba(60, 60, 67, 0.18);  /* Apple Quaternary Label */
+  --text-inverse:    #FFFFFF;          /* 深色背景上的文字 */
+
+  --separator:       rgba(0, 0, 0, 0.05);     /* 1px 极淡分隔线 — Flat Minimalism */
+  --separator-solid: #E5E5EA;          /* 实色分隔线 */
+
+  /* ── Flat Minimalism 专用 ── */
+  --border-flat:     1px solid rgba(0, 0, 0, 0.05);   /* 卡片默认边框 */
+  --border-node:     1px solid rgba(0, 0, 0, 0.08);   /* 节点边框 */
+  --shadow-hover:    0 20px 40px -10px rgba(0,0,0,0.06);  /* 唯一允许的阴影 */
+  --shadow-node-inset: inset 0 1px 0 rgba(255,255,255,1);  /* 节点内阴影 — 物理厚度 */
+  --shadow-sm:       0 1px 2px rgba(0,0,0,0.04);      /* 极轻阴影（胶囊栏等） */
+  --accent:          #0071E3;          /* Apple Blue (v) */
+  --accent-hover:    #0077ED;          /* (v) */
+  --link:            #0066CC;          /* 行内链接 (v) */
+  --accent-dim:      rgba(0, 113, 227, 0.1);  /* 强调色低浓度 */
+  --accent-active:   #006EDB;          /* 按下态 */
+  --destructive:     #FF3B30;          /* 删除/危险 */
+  --success:         #34C759;          /* Apple systemGreen */
+  --warning:         #FF9500;          /* Apple systemOrange */
+  --indigo:          #5856D6;          /* Apple systemIndigo */
+  --purple:          #AF52DE;          /* Apple systemPurple */
+  --pink:            #FF2D55;          /* Apple systemPink */
+  --teal:            #5AC8FA;          /* Apple systemTeal */
+
+  /* Dark Mode */
+  --bg-page-dark:         #000000;     /* OLED 纯黑 (v) */
+  --bg-card-dark:         #1C1C1E;     /* (v) */
+  --bg-elevated-dark:     #2C2C2E;     /* (v) */
+  --text-primary-dark:    #F5F5F7;     /* 近白 (v) */
+  --text-secondary-dark:  #A1A1A6;     /* (v) */
+  --separator-dark:       #424245;     /* (v) */
+  --accent-dark:          #2997FF;     /* 深色模式更亮的蓝 (v) */
+
+
+  /* ========== Typography ========== */
+
+  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Display',
+               'SF Pro Text', 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, system-ui, sans-serif;
+  --font-stack: var(--font-sans);  /* 别名 */
+
+  /* 字重 (v) */
+  --fw-bold:     700;     /* 标题 */
+  --fw-semibold: 600;     /* eyebrow、小标签 */
+  --fw-regular:  400;     /* 正文、按钮 */
+
+  /* 字号 (v) */
+  --text-hero:     clamp(56px, 8vw, 96px);
+  --text-section:  clamp(32px, 5vw, 64px);
+  --text-feature:  32px;
+  --text-eyebrow:  21px;
+  --text-title:    28px;
+  --text-heading:  22px;
+  --text-subhead:  15px;
+  --text-body:     17px;     /* Apple Body — 不是 16px (v) */
+  --text-callout:  16px;
+  --text-caption:  14px;
+  --text-footnote: 13px;
+  --text-micro:    12px;
+
+  /* 行高 — 字号越大行高越紧 (v) */
+  --lh-hero:     1.05;
+  --lh-section:  1.08;
+  --lh-feature:  1.12;
+  --lh-body:     1.47;
+  --lh-caption:  1.43;
+
+  /* 字间距 — Apple 跟踪曲线 (v) */
+  --ls-hero:     -0.025em;
+  --ls-section:  -0.020em;
+  --ls-feature:  -0.015em;
+  --ls-body:     -0.012em;
+  --ls-caption:   0em;
+  --ls-eyebrow:  +0.020em;
+
+
+  /* ========== Spacing — 8pt Grid (v) ========== */
+
+  --space-1:   4px;
+  --space-2:   8px;
+  --space-3:   12px;
+  --space-4:   16px;
+  --space-5:   20px;
+  --space-6:   24px;
+  --space-8:   32px;
+  --space-10:  40px;
+  --space-12:  48px;
+  --space-16:  64px;
+  --space-20:  80px;
+  --space-24:  96px;
+  --space-30:  120px;
+
+
+  /* ========== Layout ========== */
+
+  --content-max:    980px;     /* (v) */
+  --hero-max:       1440px;    /* (v) */
+  --side-padding:   22px;      /* (v) */
+  --nav-height:     52px;      /* (v) */
+
+
+  /* ========== Corner Radius — Continuous/Squircle (v) ========== */
+
+  --radius-sm:   8px;
+  --radius-md:   12px;
+  --radius-lg:   16px;
+  --radius-xl:   20px;
+  --radius-2xl:  28px;
+  --radius-node: 16px;
+  --radius-pill: 980px;
+
+
+  /* ========== Shadows — Multi-layer, Ultra-low Opacity (v) ========== */
+
+  --shadow-resting:
+    0 1px 3px rgba(0, 0, 0, 0.04);
+
+  --shadow-raised:
+    0 1px 3px rgba(0, 0, 0, 0.04),
+    0 2px 8px rgba(0, 0, 0, 0.06);
+
+  --shadow-floating:
+    0 2px 8px rgba(0, 0, 0, 0.06),
+    0 4px 16px rgba(0, 0, 0, 0.08);
+
+  --shadow-elevated:
+    0 4px 16px rgba(0, 0, 0, 0.08),
+    0 12px 40px rgba(0, 0, 0, 0.12);
+
+  --shadow-dramatic:
+    0 8px 30px rgba(0, 0, 0, 0.12),
+    0 20px 60px rgba(0, 0, 0, 0.15);
+
+  --shadow-stroke: 0 0 0 1px rgba(0, 0, 0, 0.04);  /* 极细描边替代 border */
+
+  /* ── Apple Materials（毛玻璃材质层次）── */
+  --glass-ultra-thin:  rgba(255, 255, 255, 0.50);
+  --glass-thin:        rgba(255, 255, 255, 0.65);
+  --glass-regular:     rgba(255, 255, 255, 0.72);
+  --glass-thick:       rgba(255, 255, 255, 0.85);
+  --glass-blur:        saturate(180%) blur(20px);
+
+  /* ── Liquid Glass（WWDC 2025）── */
+  --liquid-glass-bg:     rgba(255, 255, 255, 0.45);
+  --liquid-glass-blur:   saturate(1.8) blur(40px);
+  --liquid-glass-border: 0.5px solid rgba(255, 255, 255, 0.6);
+  --liquid-glass-shadow: 0 2px 20px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.8);
+
+
+  /* ========== Animation ========== */
+
+  --ease-apple:     cubic-bezier(0.25, 0.1, 0.25, 1);  /* Apple 标准曲线 (v) */
+  --ease-spring:    cubic-bezier(0.175, 0.885, 0.32, 1.275);  /* Apple 弹性 */
+  --ease-out:       cubic-bezier(0.0, 0.0, 0.2, 1.0);  /* Apple decelerate */
+  --ease-in:        cubic-bezier(0.4, 0.0, 1.0, 1.0);  /* Apple accelerate */
+
+  /* ── Framer Motion Spring 参数 ── */
+  --spring-stiffness: 300;   /* 更硬更弹 — Flat Minimalism 标准 */
+  --spring-damping:   25;
+  --duration-fast:  150ms;
+  --duration-base:  200ms;
+  --duration-slow:  300ms;
+  --duration-enter: 500ms;
+  --duration-exit:  350ms;     /* exit 比 enter 快 30% (v) */
+  --stagger-step:   50ms;      /* (v) */
+
+
+  /* ========== Z-Index ========== */
+
+  --z-base:     0;
+  --z-dropdown: 10;
+  --z-sticky:   20;
+  --z-overlay:  40;
+  --z-modal:    100;
+  --z-toast:    200;
+}

@@ -1,0 +1,232 @@
+/*
+ * Fugue — 全局动画定义
+ * 包含静态态微动效和动态态赛博特效
+ */
+
+/* ========== Reduced Motion (v) ========== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ========== 页面加载动画 ========== */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ========== 骨架屏闪光 ========== */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, #F5F5F7 25%, #E8E8ED 50%, #F5F5F7 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* ========== 动态态赛博动画 ========== */
+@keyframes cyberPulse {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(0, 212, 255, 0.15),
+                inset 0 0 10px rgba(0, 212, 255, 0.03);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(0, 212, 255, 0.35),
+                inset 0 0 20px rgba(0, 212, 255, 0.08);
+  }
+}
+
+@keyframes cyberFlow {
+  from { stroke-dashoffset: 1040; }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes cyberGlitch {
+  0% { transform: translate(0); }
+  20% { transform: translate(-2px, 1px); }
+  40% { transform: translate(2px, -1px); }
+  60% { transform: translate(-1px, 2px); }
+  80% { transform: translate(1px, -2px); }
+  100% { transform: translate(0); }
+}
+
+@keyframes neonFlicker {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+  52% { opacity: 1; }
+  54% { opacity: 0.9; }
+}
+
+/* ========== 状态脉冲 ========== */
+@keyframes statusPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.5); opacity: 0; }
+}
+
+/* ========== 边缘流动 ========== */
+@keyframes edgeFlow {
+  from { stroke-dashoffset: 20; }
+  to { stroke-dashoffset: 0; }
+}
+
+/* ========== 霓虹光轨爆射 ========== */
+@keyframes neonBurst {
+  0% { transform: scale(0); opacity: 1; }
+  50% { opacity: 0.8; }
+  100% { transform: scale(3); opacity: 0; }
+}
+
+/* ========== 扫描线效果 ========== */
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+/* ========== CRT 闪烁 ========== */
+@keyframes crtFlicker {
+  0%, 100% { opacity: 1; }
+  92% { opacity: 1; }
+  93% { opacity: 0.8; }
+  94% { opacity: 1; }
+  96% { opacity: 0.9; }
+  97% { opacity: 1; }
+}
+
+/* ========== 心跳脉冲 — 双击节律 ========== */
+@keyframes heartbeatPulse {
+  0%, 100% { transform: scale(1); }
+  15% { transform: scale(1.05); }
+  30% { transform: scale(1); }
+  45% { transform: scale(1.03); }
+  60% { transform: scale(1); }
+}
+
+/* ========== 环境呼吸 — 纯 opacity，不引起布局抖动 ========== */
+@keyframes ambientPulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+/* ========== 数据流跑马灯 ========== */
+@keyframes dataStream {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+/* ========== 节点 bloom 脉冲 — 多层光晕呼吸 ========== */
+@keyframes bloomPulse {
+  0%, 100% {
+    box-shadow:
+      0 0 10px rgba(0, 212, 255, 0.2),
+      0 0 20px rgba(0, 212, 255, 0.15),
+      0 0 40px rgba(0, 212, 255, 0.08);
+  }
+  50% {
+    box-shadow:
+      0 0 15px rgba(0, 212, 255, 0.4),
+      0 0 30px rgba(0, 212, 255, 0.25),
+      0 0 60px rgba(0, 212, 255, 0.12),
+      0 0 80px rgba(0, 212, 255, 0.06);
+  }
+}
+
+@keyframes bloomPulseViolet {
+  0%, 100% {
+    box-shadow:
+      0 0 10px rgba(175, 82, 222, 0.2),
+      0 0 20px rgba(175, 82, 222, 0.15),
+      0 0 40px rgba(175, 82, 222, 0.08);
+  }
+  50% {
+    box-shadow:
+      0 0 15px rgba(175, 82, 222, 0.4),
+      0 0 30px rgba(175, 82, 222, 0.25),
+      0 0 60px rgba(175, 82, 222, 0.12),
+      0 0 80px rgba(175, 82, 222, 0.06);
+  }
+}
+
+@keyframes bloomPulseGreen {
+  0%, 100% {
+    box-shadow:
+      0 0 10px rgba(48, 209, 88, 0.2),
+      0 0 20px rgba(48, 209, 88, 0.15),
+      0 0 40px rgba(48, 209, 88, 0.08);
+  }
+  50% {
+    box-shadow:
+      0 0 15px rgba(48, 209, 88, 0.4),
+      0 0 30px rgba(48, 209, 88, 0.25),
+      0 0 60px rgba(48, 209, 88, 0.12);
+  }
+}
+
+@keyframes bloomPulseRed {
+  0%, 100% {
+    box-shadow:
+      0 0 10px rgba(255, 69, 58, 0.2),
+      0 0 20px rgba(255, 69, 58, 0.15),
+      0 0 40px rgba(255, 69, 58, 0.08);
+  }
+  50% {
+    box-shadow:
+      0 0 15px rgba(255, 69, 58, 0.4),
+      0 0 30px rgba(255, 69, 58, 0.25),
+      0 0 60px rgba(255, 69, 58, 0.12);
+  }
+}
+
+/* ========== 霓虹光点流动 ========== */
+@keyframes neonParticleFlow {
+  0% { offset-distance: 0%; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { offset-distance: 100%; opacity: 0; }
+}
+
+/* ========== 完成态 checkmark 绘制 ========== */
+@keyframes drawCheck {
+  0% { stroke-dashoffset: 24; }
+  100% { stroke-dashoffset: 0; }
+}

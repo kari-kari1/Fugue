@@ -1,0 +1,197 @@
+/*
+ * Fugue — 动态态设计 Token (Cyber-Engine Mode)
+ * 覆盖 index.css :root 中的所有变量，使 Tailwind 类自动生效
+ * 包含 ReactFlow Canvas 的 cyber 主题覆盖
+ */
+
+html[data-theme="cyber"] {
+  /* ========== Backgrounds ========== */
+  --bg-primary:        #000000;
+  --bg-secondary:      #0A0A0F;
+  --bg-tertiary:       #111118;
+  --bg-elevated:       #141414;
+  --bg-card:           rgba(18, 18, 26, 0.7);
+  --bg-overlay:        rgba(0, 0, 0, 0.7);
+  --bg-sidebar:        #0A0A0F;
+
+  --bg-page:           #000000;
+  --bg-nav:            rgba(0, 0, 0, 0.85);
+
+  /* ========== Text ========== */
+  --text-primary:      #E8E8ED;
+  --text-secondary:    #A1A1A6;
+  --text-tertiary:     #636366;
+  --text-disabled:     #48484A;
+  --text-inverse:      #000000;
+
+  /* ========== Accent — Neon Cyan 主色 ========== */
+  --accent-primary:        #00D4FF;
+  --accent-primary-hover:  #33DDFF;
+  --accent-primary-dim:    rgba(0, 212, 255, 0.1);
+  --accent-primary-glow:   rgba(0, 212, 255, 0.2);
+
+  --accent-secondary:      #AF52DE;
+  --accent-secondary-hover:#BF6DE8;
+  --accent-secondary-dim:  rgba(175, 82, 222, 0.1);
+  --accent-secondary-glow: rgba(175, 82, 222, 0.2);
+
+  --accent-cyan:           #00D4FF;
+  --accent-cyan-hover:     #33DDFF;
+  --accent-cyan-dim:       rgba(0, 212, 255, 0.1);
+
+  --accent-green:          #30D158;
+  --accent-green-hover:    #4ADE80;
+  --accent-green-dim:      rgba(48, 209, 88, 0.1);
+  --accent-green-glow:     rgba(48, 209, 88, 0.2);
+
+  --accent-amber:          #FFD60A;
+  --accent-amber-hover:    #FFE033;
+  --accent-amber-dim:      rgba(255, 214, 10, 0.1);
+
+  --accent-red:            #FF453A;
+  --accent-red-hover:      #FF6961;
+  --accent-red-dim:        rgba(255, 69, 58, 0.1);
+  --accent-red-glow:       rgba(255, 69, 58, 0.2);
+
+  /* Neon aliases */
+  --neon-cyan:     #00D4FF;
+  --neon-violet:   #AF52DE;
+  --neon-green:    #30D158;
+  --neon-amber:    #FFD60A;
+  --neon-red:      #FF453A;
+
+  /* ========== Borders ========== */
+  --border-subtle:     rgba(255, 255, 255, 0.04);
+  --border-default:    rgba(255, 255, 255, 0.08);
+  --border-hover:      rgba(0, 212, 255, 0.3);
+  --border-focus:      #00D4FF;
+  --border-hairline:   rgba(255, 255, 255, 0.06);
+  --border-divider:    rgba(255, 255, 255, 0.08);
+
+  --separator:         rgba(255, 255, 255, 0.08);
+
+  /* ========== Shadows — Glow 替代传统阴影 ========== */
+  --shadow-sm:     0 0 8px rgba(0, 212, 255, 0.08);
+  --shadow-md:     0 0 16px rgba(0, 212, 255, 0.12);
+  --shadow-lg:     0 0 24px rgba(0, 212, 255, 0.15);
+  --shadow-xl:     0 0 40px rgba(0, 212, 255, 0.2);
+
+  --shadow-resting:  0 0 8px rgba(0, 212, 255, 0.06);
+  --shadow-raised:   0 0 16px rgba(0, 212, 255, 0.1);
+  --shadow-floating: 0 0 24px rgba(0, 212, 255, 0.15);
+  --shadow-elevated: 0 0 32px rgba(0, 212, 255, 0.2);
+  --shadow-dramatic: 0 0 60px rgba(0, 212, 255, 0.25);
+
+  --glow-sm:  0 0 8px currentColor;
+  --glow-md:  0 0 20px currentColor;
+  --glow-lg:  0 0 40px currentColor, 0 0 80px currentColor;
+
+  --glow-primary-effect:  0 0 20px rgba(0, 212, 255, 0.2);
+  --glow-accent-effect:   0 0 20px rgba(0, 212, 255, 0.2);
+  --glow-success-effect:  0 0 20px rgba(48, 209, 88, 0.2);
+
+  --hover-glow:           0 0 20px rgba(0, 212, 255, 0.2);
+
+  --shadow-glow-steel:    0 0 20px rgba(0, 212, 255, 0.2);
+  --shadow-glow-sage:     0 0 20px rgba(48, 209, 88, 0.2);
+  --shadow-glow-mauve:    0 0 20px rgba(175, 82, 222, 0.2);
+  --shadow-glow-gold:     0 0 20px rgba(255, 214, 10, 0.2);
+  --shadow-glow-rose:     0 0 20px rgba(255, 69, 58, 0.2);
+
+  /* ========== Glass — 深色毛玻璃 ========== */
+  --glass-bg:          rgba(18, 18, 26, 0.6);
+  --glass-blur:        blur(40px) saturate(1.8);
+  --glass-border:      rgba(255, 255, 255, 0.06);
+  --glass-bg-strong:   rgba(18, 18, 26, 0.8);
+  --glass-blur-strong: blur(60px) saturate(2);
+
+  /* ========== Links ========== */
+  --link:  #00D4FF;
+
+  /* ========== Destructive ========== */
+  --destructive: #FF453A;
+
+  /* ========== Success / Warning ========== */
+  --success: #30D158;
+  --warning: #FFD60A;
+
+  /* ========== ReactFlow Canvas Cyber Overrides ========== */
+}
+
+/* ReactFlow Canvas — Cyber Theme */
+html[data-theme="cyber"] .react-flow__background {
+  opacity: 0.3;
+}
+
+html[data-theme="cyber"] .react-flow__background pattern circle,
+html[data-theme="cyber"] .react-flow__background pattern line {
+  stroke: rgba(0, 212, 255, 0.08) !important;
+}
+
+html[data-theme="cyber"] .react-flow__controls {
+  background: rgba(10, 10, 15, 0.8) !important;
+  border: 0.5px solid rgba(0, 212, 255, 0.15) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.03) !important;
+  backdrop-filter: blur(40px) saturate(1.8) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(1.8) !important;
+  overflow: hidden !important;
+}
+
+html[data-theme="cyber"] .react-flow__controls button {
+  background: transparent !important;
+  color: #A1A1A6 !important;
+  border: none !important;
+  border-bottom: 0.5px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+html[data-theme="cyber"] .react-flow__controls button:hover {
+  background: rgba(0, 212, 255, 0.08) !important;
+  color: #00D4FF !important;
+}
+
+html[data-theme="cyber"] .react-flow__controls button:last-child {
+  border-bottom: none !important;
+}
+
+html[data-theme="cyber"] .react-flow__controls button svg {
+  fill: currentColor !important;
+}
+
+html[data-theme="cyber"] .react-flow__minimap {
+  background: rgba(10, 10, 15, 0.8) !important;
+  border: 0.5px solid rgba(0, 212, 255, 0.15) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.08) !important;
+  backdrop-filter: blur(40px) saturate(1.8) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(1.8) !important;
+  overflow: hidden !important;
+}
+
+html[data-theme="cyber"] .react-flow__minimap-mask {
+  fill: rgba(0, 0, 0, 0.85) !important;
+}
+
+html[data-theme="cyber"] .react-flow__edge-path {
+  stroke: rgba(0, 212, 255, 0.2) !important;
+}
+
+html[data-theme="cyber"] .react-flow__handle {
+  background: #00D4FF !important;
+  border: 1px solid rgba(0, 212, 255, 0.5) !important;
+  box-shadow: 0 0 8px rgba(0, 212, 255, 0.3) !important;
+}
+
+html[data-theme="cyber"] .react-flow__handle:hover {
+  box-shadow: 0 0 15px rgba(0, 212, 255, 0.5) !important;
+}
+
+html[data-theme="cyber"] .react-flow__connection-line {
+  stroke: #00D4FF !important;
+  stroke-width: 2 !important;
+  filter: drop-shadow(0 0 6px rgba(0, 212, 255, 0.5)) !important;
+}
+
+html[data-theme="cyber"] .react-flow__attribution {
+  display: none !important;
+}
