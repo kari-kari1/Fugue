@@ -1,18 +1,18 @@
-/* 事件流节点 — @start / @listen / @router 事件驱动流程可视化 */
-
 import React from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Play, Radio, GitBranch } from 'lucide-react';
 
 export type EventFlowType = 'start' | 'listen' | 'router_event';
 
-const EVENT_FLOW_CONFIG: Record<EventFlowType, {
+interface FlowNodeConfig {
   icon: React.ReactNode;
   label: string;
   color: string;
   bgColor: string;
   borderColor: string;
-}> = {
+}
+
+const EVENT_FLOW_CONFIG: Record<EventFlowType, FlowNodeConfig> = {
   start: {
     icon: <Play size={14} />,
     label: '@start',
@@ -36,11 +36,11 @@ const EVENT_FLOW_CONFIG: Record<EventFlowType, {
   },
 };
 
-const EventFlowNode: React.FC<NodeProps> = ({ data, selected }) => {
+const EventFlowNode = ({ data, selected }: NodeProps) => {
   const flowType = (data?.flowType as EventFlowType) || 'start';
-  const config = EVENT_FLOW_CONFIG[flowType] || EVENT_FLOW_CONFIG.start;
-  const name = (data?.name as string) || config.label;
-  const eventName = (data?.event_name as string) || '';
+  const config: FlowNodeConfig = EVENT_FLOW_CONFIG[flowType] || EVENT_FLOW_CONFIG.start;
+  const name: string = (data?.name as string) || config.label;
+  const eventName: string = (data?.event_name as string) || '';
 
   return (
     <div
@@ -56,7 +56,6 @@ const EventFlowNode: React.FC<NodeProps> = ({ data, selected }) => {
         transition: 'all 0.2s ease',
       }}
     >
-      {/* 顶部 Handle（listen/router 接收事件） */}
       {flowType !== 'start' && (
         <Handle
           type="target"
@@ -70,9 +69,8 @@ const EventFlowNode: React.FC<NodeProps> = ({ data, selected }) => {
         />
       )}
 
-      {/* 头部 */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-        <span style={{ color: config.color }}>{config.icon}</span>
+        <span style={{ color: config.color }}>{config.icon as React.ReactNode}</span>
         <span style={{
           fontSize: 12,
           fontWeight: 600,
@@ -83,22 +81,8 @@ const EventFlowNode: React.FC<NodeProps> = ({ data, selected }) => {
         </span>
       </div>
 
-      {/* 类型标签 */}
-      <span style={{
-        display: 'inline-block',
-        padding: '1px 8px',
-        borderRadius: 6,
-        fontSize: 9,
-        fontWeight: 600,
-        color: config.color,
-        background: `${config.color}20`,
-        textTransform: 'uppercase',
-        letterSpacing: '0.05em',
-      }}>
-        {config.label}
-      </span>
+      <span>{String(config.label)}</span>
 
-      {/* 事件名 */}
       {eventName && (
         <div style={{
           fontSize: 10,
@@ -114,8 +98,7 @@ const EventFlowNode: React.FC<NodeProps> = ({ data, selected }) => {
         </div>
       )}
 
-      {/* 条件（router 类型） */}
-      {flowType === 'router_event' && data?.condition && (
+      {flowType === 'router_event' && (data?.condition as string) && (
         <div style={{
           fontSize: 10,
           color: '#6E6E73',
@@ -126,7 +109,6 @@ const EventFlowNode: React.FC<NodeProps> = ({ data, selected }) => {
         </div>
       )}
 
-      {/* 底部 Handle */}
       <Handle
         type="source"
         position={Position.Bottom}

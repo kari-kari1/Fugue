@@ -8,7 +8,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Plus, Trash2, Play, Clock, Settings, LayoutGrid, Puzzle,
   Globe, CalendarClock, Rocket, FileCode2, Key, ChevronRight, BookOpen,
-  BarChart3, CheckCircle2, Zap, DollarSign, Loader2,
+  BarChart3, CheckCircle2, Zap, DollarSign, Loader2, Moon, Sun,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { crewsApi } from '../api/crews';
@@ -17,11 +17,14 @@ import { demoApi } from '../api/demo';
 import { getLLMKeys, getLLMBaseUrls } from '../lib/llmKeys';
 import type { Crew } from '../types';
 import { useAuthStore } from '../stores/authStore';
+import { useIsMobile } from '../lib/responsive';
+import { MobileMenu } from '../components/layout/MobileMenu';
 import { formatDate, parseUTC } from '../lib/utils';
 import { StaggerList } from '../components/motion/StaggerList';
 import { staggerItem } from '../lib/motion-variants';
 import { useThemeStore } from '../stores/themeStore';
 import { TunnelTransition } from '../components/motion/TunnelTransition';
+import { setLang, getLang } from '../lib/i18n';
 import toast from 'react-hot-toast';
 
 /* ========== Design Tokens ========== */
@@ -468,6 +471,25 @@ const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
+
+  // Dark/light theme toggle
+  const [isDark, setIsDark] = useState(() => localStorage.getItem('theme') === 'dark');
+  const toggleTheme = () => {
+    const next = !isDark;
+    setIsDark(next);
+    document.documentElement.setAttribute('data-theme', next ? 'dark' : 'light');
+    localStorage.setItem('theme', next ? 'dark' : 'light');
+  };
+
+  // Language switcher
+  const [lang, setLangState] = useState(getLang());
+  const toggleLang = () => {
+    const next = lang === 'zh' ? 'en' : 'zh';
+    setLangState(next);
+    setLang(next);
+    window.location.reload();
+  };
 
   const { data: crews, isLoading } = useQuery({
     queryKey: ['crews'],
@@ -548,33 +570,96 @@ const Dashboard: React.FC = () => {
           <span
             onClick={() => navigate('/')}
             style={{
+              cursor: 'pointer',
+              flexShrink: 0,
+              display: 'flex',
+              alignItems: 'center',
+            }}
+          >
+            <img
+              src="/logo.png"
+              alt="Fugue"
+              style={{ height: '48px' }}
+              onError={(e) => {
+                // Fallback to text if image fails to load
+                (e.target as HTMLImageElement).style.display = 'none';
+                const fallback = (e.target as HTMLImageElement).nextElementSibling;
+                if (fallback) (fallback as HTMLElement).style.display = 'inline';
+              }}
+            />
+            <span style={{
+              display: 'none',
               fontSize: '17px',
               fontWeight: 700,
               color: TEXT_PRIMARY,
-              cursor: 'pointer',
-              flexShrink: 0,
               letterSpacing: '-0.02em',
-            }}
-          >
-            Fugue
+            }}>
+              Fugue
+            </span>
           </span>
 
-          {/* Center nav */}
-          <nav style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
-            overflow: 'hidden',
-            flex: 1,
-            justifyContent: 'center',
-          }}>
-            {NAV_LINKS.map((link) => (
-              <NavLink key={link.path} {...link} />
-            ))}
-          </nav>
+          {/* Center nav — mobile: hamburger drawer, desktop: inline links */}
+          {isMobile ? (
+            <div style={{ display: 'flex', alignItems: 'center', flex: 1, justifyContent: 'flex-end' }}>
+              <MobileMenu onLogout={handleLogout} username={user?.username} />
+            </div>
+          ) : (
+            <nav style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              overflow: 'hidden',
+              flex: 1,
+              justifyContent: 'center',
+            }}>
+              {NAV_LINKS.map((link) => (
+                <NavLink key={link.path} {...link} />
+              ))}
+            </nav>
+          )}
 
           {/* Right: user controls */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+            {/* Theme toggle */}
+            <motion.button
+              onClick={toggleTheme}
+              whileTap={{ scale: 0.97 }}
+              whileHover={{ color: TEXT_PRIMARY }}
+              transition={SPRING}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                color: TEXT_SECONDARY,
+                padding: '6px',
+                borderRadius: '6px',
+                display: 'flex',
+                alignItems: 'center',
+              }}
+              title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {isDark ? <Sun size={18} /> : <Moon size={18} />}
+            </motion.button>
+            {/* Language switcher */}
+            <motion.button
+              onClick={toggleLang}
+              whileTap={{ scale: 0.97 }}
+              whileHover={{ color: TEXT_PRIMARY }}
+              transition={SPRING}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                color: TEXT_SECONDARY,
+                fontSize: '12px',
+                fontWeight: 500,
+                padding: '6px 8px',
+                borderRadius: '6px',
+              }}
+              title="Switch Language"
+            >
+              {lang === 'zh' ? 'EN' : '中文'}
+            </motion.button>
             <span style={{
               fontSize: '13px',
               color: TEXT_SECONDARY,

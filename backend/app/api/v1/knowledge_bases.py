@@ -40,8 +40,7 @@ class AgentMappingOut(BaseModel):
     agent_id: str
     knowledge_base_id: str
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class KnowledgeBaseOut(BaseModel):
@@ -55,8 +54,7 @@ class KnowledgeBaseOut(BaseModel):
     agent_mappings: Optional[List[AgentMappingOut]] = None
     created_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class DocumentChunkIn(BaseModel):

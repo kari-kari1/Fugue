@@ -340,8 +340,8 @@ class MemoryService:
                             age_hours = (now - created).total_seconds() / 3600
                             # 指数衰减：24h半衰期
                             recency = max(0.01, 2 ** (-age_hours / 24))
-                        except Exception:
-                            pass
+                        except Exception as e:
+                            logger.debug(f"Failed to parse memory timestamp: {e}")
 
                     candidates.append({
                         "content": r.get("content", ""),

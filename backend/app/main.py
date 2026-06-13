@@ -82,8 +82,8 @@ async def shutdown_all():
         limiter = get_rate_limiter()
         if hasattr(limiter, '_redis') and limiter._redis:
             await limiter._redis.close()
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug(f"Rate limiter cleanup skipped: {e}")
     logger.info("Unified shutdown complete")
 
 
@@ -267,6 +267,14 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 app.add_middleware(SecurityHeadersMiddleware)
 
+# 可观测性中间件 — 请求耗时指标
+from app.core.observability import MetricsMiddleware
+app.add_middleware(MetricsMiddleware)
+
+# 全局异常处理器
+from app.core.exceptions import register_exception_handlers
+register_exception_handlers(app)
+
 # 注册路由
 app.include_router(api_router, prefix="/api/v1")
 
@@ -296,3 +304,14 @@ async def root():
 async def health_check():
     """健康检查端点"""
     return {"status": "healthy"}
+
+
+@app.get("/metrics")
+async def prometheus_metrics():
+    """Prometheus 指标端点 — 报告第一章 可观测性 (5/10)"""
+    from app.core.observability import metrics
+    from fastapi.responses import PlainTextResponse
+    return PlainTextResponse(
+        content=metrics.to_prometheus(),
+        media_type="text/plain; version=0.0.4; charset=utf-8",
+    )

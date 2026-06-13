@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { apiClient } from '../api/client';
-import { Activity, Terminal, Plug, Shield, Wrench } from 'lucide-react';
+import { Activity, Terminal, Plug, Wrench } from 'lucide-react';
 
 interface MCPPreset {
   id: string;

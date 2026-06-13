@@ -5,7 +5,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  GitBranch, Play, Pause, Clock, CheckCircle2, AlertCircle,
+  GitBranch, Play, Pause, Clock, CheckCircle2,
   RefreshCw, ChevronRight, Activity
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -77,8 +77,9 @@ export const CheckpointPanel: React.FC<CheckpointPanelProps> = ({
     }
   };
 
-  const autoCPs = checkpoints.filter(c => c.checkpoint_type === 'auto');
-  const manualCPs = checkpoints.filter(c => c.checkpoint_type === 'manual');
+  // 按类型分类检查点（保留供后续分类展示）
+  // const autoCPs = checkpoints.filter(c => c.checkpoint_type === 'auto');
+  // const manualCPs = checkpoints.filter(c => c.checkpoint_type === 'manual');
 
   return (
     <div style={{
@@ -203,7 +204,7 @@ export const CheckpointPanel: React.FC<CheckpointPanelProps> = ({
                   }} />
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {[...checkpoints].reverse().map((cp, idx) => (
+                    {[...checkpoints].reverse().map((cp, _idx) => (
                       <div key={cp.id} style={{
                         position: 'relative',
                         paddingLeft: 30,

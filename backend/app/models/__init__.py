@@ -12,3 +12,5 @@ from app.models.plugin import PluginConfig  # noqa: F401
 from app.models.template import Template  # noqa: F401
 from app.models.flow_config import FlowConfig  # noqa: F401
 from app.models.iteration import Iteration  # noqa: F401
+from app.models.skill import Skill  # noqa: F401
+from app.models.api_key import APIKey  # noqa: F401

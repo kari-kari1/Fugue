@@ -13,6 +13,7 @@ import os
 import time
 import signal
 import platform
+import webbrowser
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
@@ -100,13 +101,16 @@ def start_backend():
 
 
 def start_frontend():
-    """启动 Tauri + Vite 前端"""
-    print_step("启动前端 (Tauri + Vite)")
-    os.chdir(str(ROOT))
+    """启动 Vite 前端开发服务器（纯 Web 模式，无需编译 Tauri）"""
+    print_step("启动前端 (Vite Dev Server)")
+    os.chdir(str(FRONTEND_DIR))
 
     npm_cmd = "npm.cmd" if platform.system() == "Windows" else "npm"
+    env = os.environ.copy()
+    env["VITE_API_BASE_URL"] = "http://127.0.0.1:8000/api/v1"
     proc = subprocess.Popen(
         [npm_cmd, "run", "dev"],
+        env=env,
         creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if platform.system() == "Windows" else 0,
     )
     processes.append(("Frontend", proc))
@@ -158,6 +162,10 @@ def main():
         signal.signal(signal.SIGTERM, lambda s, f: cleanup())
         start_frontend()
         print("\n  前端运行中 — Ctrl+C 停止\n")
+        # 自动打开浏览器
+        print("  正在打开浏览器...")
+        webbrowser.open("http://localhost:1420")
+        print("  浏览器已打开!\n")
         try:
             while True:
                 time.sleep(1)
@@ -175,6 +183,10 @@ def main():
         print("  API文档: http://127.0.0.1:8000/docs")
         print("  前端:  http://localhost:1420")
         print(f"  Ctrl+C 停止所有服务\n{'='*60}\n")
+        # 自动打开浏览器
+        print("  正在打开浏览器...")
+        webbrowser.open("http://localhost:1420")
+        print("  浏览器已打开 — 开始使用 Fugue!\n")
         try:
             while True:
                 time.sleep(1)

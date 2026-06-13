@@ -1,5 +1,6 @@
 """速率限制器 — C6: Redis 模式 + 内存降级"""
 
+import asyncio
 import time
 import logging
 from typing import Optional, Dict, List
@@ -15,17 +16,19 @@ class _MemoryRateLimiter:
 
     def __init__(self):
         self._data: Dict[str, List[float]] = defaultdict(list)
+        self._lock = asyncio.Lock()
 
     async def check_rate_limit(self, key: str, limit: int, window_seconds: int = 60) -> bool:
-        now = time.time()
-        window_start = now - window_seconds
-        # 清理过期条目
-        self._data[key] = [t for t in self._data[key] if t > window_start]
-        if len(self._data[key]) >= limit:
-            logger.warning(f"Rate limit exceeded for key {key}: {len(self._data[key])}/{limit}")
-            return False
-        self._data[key].append(now)
-        return True
+        async with self._lock:
+            now = time.time()
+            window_start = now - window_seconds
+            # 清理过期条目
+            self._data[key] = [t for t in self._data[key] if t > window_start]
+            if len(self._data[key]) >= limit:
+                logger.warning(f"Rate limit exceeded for key {key}: {len(self._data[key])}/{limit}")
+                return False
+            self._data[key].append(now)
+            return True
 
 
 class RedisRateLimiter:

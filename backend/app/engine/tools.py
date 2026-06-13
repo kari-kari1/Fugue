@@ -377,14 +377,9 @@ class CodeExecuteTool(BaseTool):
             return formatted
 
         except Exception as e:
-            # 沙箱不可用时降级到直接执行
-            logger.warning(f"[SANDBOX] 沙箱执行失败，降级到直接执行: {e}")
-            try:
-                return await self._execute_direct(language, sandboxed_code, sandbox_dir)
-            except asyncio.TimeoutError:
-                return "[错误] 代码执行超时 (30秒)"
-            except Exception as e2:
-                return f"[错误] 执行失败: {str(e2)}"
+            # 沙箱不可用 — 不降级到直接执行，确保安全
+            logger.error(f"[SANDBOX] 沙箱执行失败: {e}")
+            return f"[错误] 沙箱执行失败，已拒绝直接执行以确保安全: {str(e)}"
 
     async def _execute_direct(self, language: str, code: str, sandbox_dir: str) -> str:
         """直接执行（沙箱降级路径 / NONE 模式）
@@ -814,6 +809,181 @@ class TextAnalysisTool(BaseTool):
             return f"[文本分析] 类型: {analysis_type}, 原文 {char_count} 字符 / {word_count} 词\n[提示] 高级分析需要配置 LLM API Key"
 
 
+# ─── Agent 可访问的记忆工具（报告第1.3节） ───
+
+class RememberTool(BaseTool):
+    """Agent 主动记录关键信息到长期记忆"""
+    name = "remember"
+    description = "记录一条重要信息到长期记忆。当你学到关键信息、得出结论或发现模式时使用此工具。"
+    category = "memory"
+    permissions = "safe"
+
+    def get_openai_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "function",
+            "function": {
+                "name": self.name,
+                "description": self.description,
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "content": {"type": "string", "description": "要记录的内容"},
+                        "memory_type": {"type": "string", "enum": ["conclusion", "feedback", "pattern"],
+                                        "description": "记忆类型：conclusion(结论), feedback(反馈), pattern(模式发现)"},
+                        "importance": {"type": "integer", "minimum": 0, "maximum": 5,
+                                       "description": "重要程度 0-5, 5=极其重要"},
+                    },
+                    "required": ["content"],
+                },
+            },
+        }
+
+    def get_anthropic_schema(self) -> Dict[str, Any]:
+        return {
+            "name": self.name,
+            "description": self.description,
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "content": {"type": "string", "description": "要记录的内容"},
+                    "memory_type": {"type": "string", "enum": ["conclusion", "feedback", "pattern"],
+                                    "description": "记忆类型：conclusion(结论), feedback(反馈), pattern(模式发现)"},
+                    "importance": {"type": "integer", "minimum": 0, "maximum": 5,
+                                   "description": "重要程度 0-5"},
+                },
+                "required": ["content"],
+            },
+        }
+
+    async def execute(self, **kwargs) -> str:
+        content = kwargs.get("content", "")
+        memory_type = kwargs.get("memory_type", "conclusion")
+        importance = kwargs.get("importance", 3)
+        try:
+            from app.services.memory_service import save_memory
+            async with get_db_session() as db:
+                result = await save_memory(
+                    db, agent_id=None, execution_id=None,
+                    content=content, memory_type=memory_type,
+                    importance=importance, scope=None,
+                )
+                return f"[记忆已记录] id={result.get('id', '?')} type={memory_type} importance={importance}"
+        except Exception as e:
+            return f"[记忆记录失败] {str(e)}"
+
+
+class RecallTool(BaseTool):
+    """Agent 主动检索长期记忆"""
+    name = "recall"
+    description = "搜索你的长期记忆库，检索相关历史信息。当你需要回忆之前学到的内容时使用。"
+    category = "memory"
+    permissions = "safe"
+
+    def get_openai_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "function",
+            "function": {
+                "name": self.name,
+                "description": self.description,
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "query": {"type": "string", "description": "自然语言搜索查询"},
+                        "top_k": {"type": "integer", "default": 5, "description": "返回结果数量"},
+                    },
+                    "required": ["query"],
+                },
+            },
+        }
+
+    def get_anthropic_schema(self) -> Dict[str, Any]:
+        return {
+            "name": self.name,
+            "description": self.description,
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "自然语言搜索查询"},
+                    "top_k": {"type": "integer", "default": 5, "description": "返回结果数量"},
+                },
+                "required": ["query"],
+            },
+        }
+
+    async def execute(self, **kwargs) -> str:
+        query = kwargs.get("query", "")
+        top_k = kwargs.get("top_k", 5)
+        try:
+            from app.services.memory_service import recall_memories_scored
+            async with get_db_session() as db:
+                results = await recall_memories_scored(db, None, query, top_k)
+                if not results:
+                    return "[记忆检索] 未找到相关记忆"
+                lines = ["[记忆检索结果]"]
+                for i, r in enumerate(results[:top_k], 1):
+                    lines.append(f"{i}. [{r.get('memory_type', '?')}] {r.get('content', '')[:300]}")
+                return "\n".join(lines)
+        except Exception as e:
+            return f"[记忆检索失败] {str(e)}"
+
+
+class SearchKnowledgeTool(BaseTool):
+    """Agent 搜索知识库"""
+    name = "search_knowledge"
+    description = "搜索已配置的知识库，查找相关文档资料。当你需要专业领域知识或参考文档时使用。"
+    category = "memory"
+    permissions = "safe"
+
+    def get_openai_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "function",
+            "function": {
+                "name": self.name,
+                "description": self.description,
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "query": {"type": "string", "description": "搜索查询"},
+                        "kb_name": {"type": "string", "description": "指定知识库名称（可选，留空则搜索所有）"},
+                        "top_k": {"type": "integer", "default": 5, "description": "返回结果数量"},
+                    },
+                    "required": ["query"],
+                },
+            },
+        }
+
+    def get_anthropic_schema(self) -> Dict[str, Any]:
+        return {
+            "name": self.name,
+            "description": self.description,
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "搜索查询"},
+                    "kb_name": {"type": "string", "description": "指定知识库名称（可选）"},
+                    "top_k": {"type": "integer", "default": 5, "description": "返回结果数量"},
+                },
+                "required": ["query"],
+            },
+        }
+
+    async def execute(self, **kwargs) -> str:
+        query = kwargs.get("query", "")
+        top_k = kwargs.get("top_k", 5)
+        try:
+            from app.services.memory_service import retrieve_from_knowledge_base
+            async with get_db_session() as db:
+                results = await retrieve_from_knowledge_base(db, agent_id=None, query=query, top_k=top_k)
+                if not results:
+                    return "[知识库搜索] 未找到相关内容"
+                lines = ["[知识库搜索结果]"]
+                for i, r in enumerate(results[:top_k], 1):
+                    lines.append(f"{i}. {r.get('content', r.get('text', ''))[:300]}")
+                return "\n".join(lines)
+        except Exception as e:
+            return f"[知识库搜索失败] {str(e)}"
+
+
 # ─── 工具注册表 ───
 
 _TOOL_REGISTRY: Dict[str, BaseTool] = {}
@@ -824,6 +994,7 @@ def _register_defaults():
     tools = [
         WebSearchTool(), FileReadTool(), FileWriteTool(), CodeExecuteTool(),
         ApiCallTool(), DatabaseQueryTool(), ImageGenerationTool(), TextAnalysisTool(),
+        RememberTool(), RecallTool(), SearchKnowledgeTool(),
     ]
     for t in tools:
         _TOOL_REGISTRY[t.name] = t

@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 
-from app.api.v1 import auth, crews, agents, tasks, executions, demo, validation, templates, websocket, tools, exports, reviews, knowledge_bases, mcp, plugins, api_keys, published, webhooks, schedules, plugins_marketplace, files, iterations, mcp_server, approvals
+from app.api.v1 import auth, crews, agents, tasks, executions, demo, validation, templates, websocket, tools, exports, reviews, knowledge_bases, mcp, plugins, api_keys, published, webhooks, schedules, plugins_marketplace, files, iterations, mcp_server, approvals, skills
 
 api_router = APIRouter()
 
@@ -30,3 +30,4 @@ api_router.include_router(files.router, prefix="/files", tags=["文件存储"])
 api_router.include_router(iterations.router, prefix="/executions", tags=["迭代"])
 api_router.include_router(mcp_server.router, prefix="/mcp-server", tags=["MCP Server"])
 api_router.include_router(approvals.router, prefix="/approvals", tags=["审批"])
+api_router.include_router(skills.router, prefix="/skills", tags=["技能市场"])

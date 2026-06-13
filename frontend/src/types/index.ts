@@ -61,7 +61,7 @@ export interface Crew {
   user_id: string;
   name: string;
   description?: string;
-  process: 'sequential' | 'parallel' | 'hierarchical' | 'prompt_chain' | 'router' | 'orchestrator' | 'evaluator_optimizer' | 'event_flow';
+  process: 'sequential' | 'parallel' | 'hierarchical' | 'prompt_chain' | 'router' | 'orchestrator' | 'evaluator_optimizer' | 'event_flow' | 'plan_execute';
   approval_mode: 'safe' | 'semi_auto' | 'full_auto';
   max_execution_time: number;
   cost_budget?: number;

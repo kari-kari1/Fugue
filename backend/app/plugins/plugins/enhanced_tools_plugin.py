@@ -994,8 +994,8 @@ class EnhancedToolsPlugin(Plugin):
                 import shutil
                 total, used, free = shutil.disk_usage("/")
                 info.append(f"磁盘空间: 总计 {total//(1024**3)}GB, 已用 {used//(1024**3)}GB, 可用 {free//(1024**3)}GB")
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(f"Failed to get disk usage info: {e}")
 
             return "[系统信息]\n" + "\n".join(info)
 

@@ -33,8 +33,7 @@ class ExecutionResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class HeadlessExecutionRequest(BaseModel):
@@ -61,8 +60,7 @@ class HeadlessExecutionResponse(BaseModel):
     error_log: Optional[str] = None
     trace: List[Dict[str, Any]] = []
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class TaskExecutionResponse(BaseModel):
@@ -88,5 +86,4 @@ class TaskExecutionResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}

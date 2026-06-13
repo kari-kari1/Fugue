@@ -11,7 +11,7 @@ async def test_register_success(client: AsyncClient):
         json={
             "email": "newuser@example.com",
             "username": "newuser",
-            "password": "StrongPass123",
+            "password": "Strong@Pass1",
         },
     )
     assert response.status_code == 201
@@ -30,7 +30,7 @@ async def test_register_duplicate_email(client: AsyncClient):
         json={
             "email": "duplicate@example.com",
             "username": "user1",
-            "password": "Pass123456",
+            "password": "Pass@12345",
         },
     )
 
@@ -40,7 +40,7 @@ async def test_register_duplicate_email(client: AsyncClient):
         json={
             "email": "duplicate@example.com",
             "username": "user2",
-            "password": "Pass123456",
+            "password": "Pass@12345",
         },
     )
     assert response.status_code == 400
@@ -54,7 +54,7 @@ async def test_register_invalid_email(client: AsyncClient):
         json={
             "email": "invalid-email",
             "username": "testuser",
-            "password": "Pass123456",
+            "password": "Pass@12345",
         },
     )
     assert response.status_code == 422
@@ -110,7 +110,7 @@ async def test_login_nonexistent_user(client: AsyncClient):
         "/api/v1/auth/login",
         json={
             "email": "nonexistent@example.com",
-            "password": "Pass123456",
+            "password": "Pass@12345",
         },
     )
     assert response.status_code == 401
@@ -240,7 +240,7 @@ async def test_reset_password_invalid_token(client: AsyncClient):
     """测试重置密码：无效token被拒绝"""
     response = await client.post(
         "/api/v1/auth/reset-password",
-        json={"reset_token": "invalid_token", "new_password": "NewPass123"},
+        json={"reset_token": "invalid_token", "new_password": "New@Pass12"},
     )
     assert response.status_code == 400
 
@@ -259,13 +259,13 @@ async def test_reset_password_token_single_use(client: AsyncClient, test_user: d
     # 第一次使用
     await client.post(
         "/api/v1/auth/reset-password",
-        json={"reset_token": token, "new_password": "NewPass123"},
+        json={"reset_token": token, "new_password": "New@Pass12"},
     )
 
     # 第二次使用应失败
     response = await client.post(
         "/api/v1/auth/reset-password",
-        json={"reset_token": token, "new_password": "NewPass456"},
+        json={"reset_token": token, "new_password": "New@Pass45"},
     )
     assert response.status_code == 400
 

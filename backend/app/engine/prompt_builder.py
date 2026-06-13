@@ -19,6 +19,9 @@ def _build_tool_capability_prompt(workspace_dir: str = None) -> str:
         "fs_list": "- **fs_list**: 列出目录内容。参数：path(目录路径)。浏览文件和目录结构。请使用绝对路径。",
         "file_read": "- **file_read**: 读取文件内容。参数：file_path(文件路径)。读取工作区内的文件。",
         # file_write 不再推荐 — 有沙箱限制，用 fs_write 代替
+        "remember": "- **remember**: 记录重要信息到长期记忆。当你学到关键信息、得出结论或发现模式时使用。参数：content(内容), memory_type(conclusion/feedback/pattern), importance(0-5)。",
+        "recall": "- **recall**: 搜索你的长期记忆库，检索相关历史信息。参数：query(搜索查询), top_k(返回数量)。",
+        "search_knowledge": "- **search_knowledge**: 搜索知识库中的文档资料。参数：query(搜索查询), kb_name(知识库名，可选), top_k(返回数量)。",
     }
 
     # 增强工具描述
@@ -59,8 +62,8 @@ def _build_tool_capability_prompt(workspace_dir: str = None) -> str:
         from app.plugins.manager import get_plugin_manager
         manager = get_plugin_manager()
         available_plugin_tools = set(manager.tools.keys())
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug(f"Plugin manager not available for tool capability: {e}")
 
     from app.engine.tools import _TOOL_REGISTRY
     available_builtin = set(_TOOL_REGISTRY.keys())
@@ -83,6 +86,7 @@ def _build_tool_capability_prompt(workspace_dir: str = None) -> str:
         "💻 代码执行": ["code_execute"],
         "🖼️ 媒体工具": ["image_info", "image_generation"],
         "⚙️ 系统工具": ["process_info", "hash_generate"],
+        "🧠 记忆管理": ["remember", "recall", "search_knowledge"],
     }
 
     for cat_name, tool_names in categories.items():
@@ -164,6 +168,18 @@ def build_messages(agent, task, context_parts: List[str], workspace_dir: str = N
             system += f"- {label}: {path}\n"
     system += "当任务涉及文件时，优先在这些目录中搜索，不要从根目录开始盲目遍历。"
 
+    # ReAct 推理框架指令 — 提升 Agent 推理链深度
+    system += "\n\n## 推理方法（ReAct — 推理+行动）"
+    system += "\n在执行任务时，请遵循以下推理循环："
+    system += "\n1. **分析**（Thought）：思考当前状态、已获得的信息、还需要什么"
+    system += "\n2. **行动**（Action）：选择合适的工具并调用它"
+    system += "\n3. **观察**（Observation）：分析工具返回的结果，判断是否满足需求"
+    system += "\n4. **决策**：如果任务完成 → 给出最终答案；如果还需要更多信息 → 回到步骤1"
+    system += "\n\n## Chain-of-Thought 引导"
+    system += "\n- 在调用任何工具之前，先在心中逐步推理：我需要什么信息？哪些工具能提供它？"
+    system += "\n- 每次获得工具结果后，评估：这个结果有用吗？我还缺什么？下一步该做什么？"
+    system += "\n- 任务完成时自检：我是否满足了所有要求？输出格式是否符合预期？"
+
     # 注入工具能力说明
     system += _build_tool_capability_prompt(workspace_dir=workspace_dir)
 
@@ -231,8 +247,8 @@ async def build_memory_context(db, agent, task, execution, memory_config) -> str
                             if content.strip():
                                 parts.append(f"[项目约定]\n{content}")
                             break
-                        except Exception:
-                            pass
+                        except Exception as e:
+                            logger.debug(f"Failed to read project convention file: {e}")
 
                 # .fugue/ 目录 — Agent级经验文件和输出文件
                 if _os.path.isdir(af_dir):
@@ -244,8 +260,8 @@ async def build_memory_context(db, agent, task, execution, memory_config) -> str
                                 if content.strip():
                                     label = fname.replace('.md', '').replace('.txt', '').replace('-', ' ').replace('_', ' ')
                                     parts.append(f"[{label}]\n{content}")
-                            except Exception:
-                                pass
+                            except Exception as e:
+                                logger.debug(f"Failed to read agent experience file: {e}")
                     # 也扫描 outputs/ 子目录中的历史输出文件
                     outputs_dir = _os.path.join(af_dir, 'outputs')
                     if _os.path.isdir(outputs_dir):
@@ -256,10 +272,10 @@ async def build_memory_context(db, agent, task, execution, memory_config) -> str
                                     content = open(fpath, encoding='utf-8').read()[:1500]
                                     if content.strip():
                                         parts.append(f"[上次输出: {fname}]\n{content}")
-                                except Exception:
-                                    pass
-        except Exception:
-            pass
+                                except Exception as e:
+                                    logger.debug(f"Failed to read historical output: {e}")
+        except Exception as e:
+            logger.warning(f"Failed to load filesystem memory context: {e}")
 
         # 2) Agent级经验（数据库）
         if getattr(agent, 'agent_experience', None):

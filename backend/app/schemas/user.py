@@ -1,20 +1,41 @@
-"""用户相关Schema"""
+"""用户相关Schema — 报告 P0-1: 添加密码强度校验"""
 
+import re
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
 class UserBase(BaseModel):
     """用户基础Schema"""
     email: EmailStr
-    username: str = Field(..., min_length=3, max_length=100)
+    username: str = Field(..., min_length=2, max_length=50)
     full_name: Optional[str] = None
+
+    @field_validator("username")
+    @classmethod
+    def username_alphanumeric(cls, v: str) -> str:
+        if not re.match(r'^[a-zA-Z0-9_一-鿿]+$', v):
+            raise ValueError("用户名只能包含字母、数字、下划线和中文")
+        return v
 
 
 class UserCreate(UserBase):
-    """创建用户"""
-    password: str = Field(..., min_length=8)
+    """创建用户 — 报告要求: 8位以上含大小写数字特殊字符"""
+    password: str = Field(..., min_length=8, max_length=128)
+
+    @field_validator("password")
+    @classmethod
+    def password_strength(cls, v: str) -> str:
+        if not re.search(r'[A-Z]', v):
+            raise ValueError("密码必须包含至少一个大写字母")
+        if not re.search(r'[a-z]', v):
+            raise ValueError("密码必须包含至少一个小写字母")
+        if not re.search(r'\d', v):
+            raise ValueError("密码必须包含至少一个数字")
+        if not re.search(r'[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\\/~`]', v):
+            raise ValueError("密码必须包含至少一个特殊字符")
+        return v
 
 
 class UserLogin(BaseModel):
@@ -38,8 +59,7 @@ class UserResponse(UserBase):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class Token(BaseModel):

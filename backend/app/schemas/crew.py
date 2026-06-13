@@ -45,9 +45,7 @@ class CrewResponse(CrewBase):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
-        populate_by_name = True
+    model_config = {"from_attributes": True, "populate_by_name": True}
 
 
 # 延迟导入避免循环依赖
@@ -62,9 +60,7 @@ class CrewDetailResponse(CrewResponse):
     agents: List[Any] = []
     tasks: List[Any] = []
 
-    class Config:
-        from_attributes = True
-        populate_by_name = True
+    model_config = {"from_attributes": True, "populate_by_name": True}
 
 
 # 在模块加载后解析前向引用

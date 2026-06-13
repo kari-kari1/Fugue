@@ -5,19 +5,20 @@
 import React from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import {
-  GitFork, Layers, Network, RefreshCw, ArrowRight,
-  GitBranch, Split, Users, Repeat, Link2,
+  GitFork, Network, RefreshCw, Split, Link2,
 } from 'lucide-react';
 
 export type WorkflowPatternType = 'router' | 'parallel' | 'orchestrator' | 'evaluator' | 'prompt_chain';
 
-const PATTERN_CONFIG: Record<WorkflowPatternType, {
+interface PatternNodeConfig {
   icon: React.ReactNode;
   label: string;
   color: string;
   bgColor: string;
   borderColor: string;
-}> = {
+}
+
+const PATTERN_CONFIG: Record<WorkflowPatternType, PatternNodeConfig> = {
   router: {
     icon: <GitFork size={14} />,
     label: 'Router 路由',
@@ -55,10 +56,10 @@ const PATTERN_CONFIG: Record<WorkflowPatternType, {
   },
 };
 
-export const WorkflowPatternNode: React.FC<NodeProps> = ({ data, selected }) => {
+export const WorkflowPatternNode = ({ data, selected }: NodeProps): React.JSX.Element => {
   const patternType = (data?.patternType as WorkflowPatternType) || 'router';
-  const config = PATTERN_CONFIG[patternType] || PATTERN_CONFIG.router;
-  const name = (data?.name as string) || config.label;
+  const config: PatternNodeConfig = PATTERN_CONFIG[patternType] || PATTERN_CONFIG.router;
+  const name: string = (data?.name as string) || config.label;
 
   return (
     <div
@@ -93,7 +94,7 @@ export const WorkflowPatternNode: React.FC<NodeProps> = ({ data, selected }) => 
         gap: 8,
         marginBottom: 6,
       }}>
-        <span style={{ color: config.color }}>{config.icon}</span>
+        <span style={{ color: config.color }}>{config.icon as React.ReactNode}</span>
         <span style={{
           fontSize: 12,
           fontWeight: 600,
@@ -120,7 +121,7 @@ export const WorkflowPatternNode: React.FC<NodeProps> = ({ data, selected }) => 
       </span>
 
       {/* 描述 / 额外信息 */}
-      {data?.description && (
+      {(data?.description as string) && (
         <div style={{
           fontSize: 10,
           color: '#6E6E73',

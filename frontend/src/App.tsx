@@ -5,6 +5,7 @@ import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import { useAuthStore } from './stores/authStore';
+import { useTutorialStore } from './stores/tutorialStore';
 
 // F4: React.lazy 代码分割 — 每个页面独立 chunk
 const Dashboard = React.lazy(() => import('./pages/Dashboard'));
@@ -22,7 +23,9 @@ const PublishedPage = React.lazy(() => import('./pages/PublishedPage'));
 const Login = React.lazy(() => import('./pages/Login'));
 const Register = React.lazy(() => import('./pages/Register'));
 const Onboarding = React.lazy(() => import('./pages/Onboarding'));
+const SkillsMarketplace = React.lazy(() => import('./pages/SkillsMarketplace'));
 import { ErrorBoundary } from './components/ErrorBoundary';
+import TutorialOverlay from './components/TutorialOverlay';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -90,6 +93,7 @@ const TokenRefreshModal: React.FC<{
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, isLoading, checkTokenExpiry, refreshToken, logout } = useAuthStore();
+  const onboardingCompleted = useTutorialStore((s) => s.onboardingCompleted);
   const [showModal, setShowModal] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [countdown, setCountdown] = useState(0);
@@ -171,6 +175,11 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
     return <Navigate to="/login" replace />;
   }
 
+  // 首次用户自动跳转到交互式新手教程
+  if (!onboardingCompleted && window.location.hash !== '#/onboarding') {
+    return <Navigate to="/onboarding" replace />;
+  }
+
   return (
     <>
       {children}
@@ -212,6 +221,7 @@ function App() {
             <Route path="/templates" element={<ProtectedRoute><Templates /></ProtectedRoute>} />
             <Route path="/plugins" element={<ProtectedRoute><Plugins /></ProtectedRoute>} />
             <Route path="/mcp-marketplace" element={<ProtectedRoute><MCPMarketplace /></ProtectedRoute>} />
+            <Route path="/skills" element={<ProtectedRoute><SkillsMarketplace /></ProtectedRoute>} />
             <Route path="/webhooks" element={<ProtectedRoute><WebhooksPage /></ProtectedRoute>} />
             <Route path="/schedules" element={<ProtectedRoute><SchedulesPage /></ProtectedRoute>} />
             <Route path="/knowledge-bases" element={<ProtectedRoute><KnowledgeBases /></ProtectedRoute>} />
@@ -222,6 +232,9 @@ function App() {
           <ElicitationListener />
         </div>
       </Router>
+
+      {/* 新手教程引导覆盖层 */}
+      <TutorialOverlay />
 
       <Toaster
         position="top-right"

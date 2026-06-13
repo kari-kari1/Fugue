@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Trash2, Search, FileText, FileEdit, Code, Globe, Database, Image, BarChart3, AlertTriangle, Wrench, GitBranch, BookOpen, Play, Radio, GitFork, Split, Network, RefreshCw, Link2 } from 'lucide-react';
 import { MemoryPanel } from './MemoryPanel';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../../api/client';
 import { useFlowStore } from '../../stores/flowStore';
 import { getLLMConfig } from '../../lib/llmKeys';
@@ -11,9 +11,8 @@ import { getAgentIcon, getTaskIcon, getConditionIcon, getLoopIcon, getReviewIcon
 import { getAllToolMeta } from '../../lib/tools';
 import { getToolSupportStatuses, type ToolSupportStatus } from '../../lib/modelCapabilities';
 import { crewsApi } from '../../api/crews';
-import { knowledgeBasesApi } from '../../api/knowledgeBases';
 import FileAttachments from './FileAttachments';
-import type { AgentNodeData, TaskNodeData, ConditionNodeData, LoopNodeData, HumanReviewNodeData, Crew, TaskAttachment, KnowledgeBase } from '../../types';
+import type { AgentNodeData, TaskNodeData, ConditionNodeData, LoopNodeData, HumanReviewNodeData, Crew, TaskAttachment } from '../../types';
 
 function getProviderOptions(): { value: string; label: string }[] {
   const config = getLLMConfig();
@@ -330,7 +329,19 @@ const AgentPropertyForm: React.FC<AgentFormProps> = ({ nodeId, data }) => {
           {availableModels.map((m) => <option key={m} value={m}>{m}</option>)}
         </select>
       </div>
-      <div>
+      <details style={{ marginTop: '8px' }}>
+        <summary style={{
+          cursor: 'pointer',
+          fontSize: '13px',
+          fontWeight: 500,
+          color: '#6E6E73',
+          padding: '4px 0',
+          userSelect: 'none',
+        }}>
+          高级选项
+        </summary>
+        <div style={{ paddingTop: '12px' }}>
+        <div>
         <div className="flex items-center justify-between mb-1.5">
           <label className={labelClass + ' !mb-0'} style={labelStyle}>工具</label>
           {(() => {
@@ -423,6 +434,8 @@ const AgentPropertyForm: React.FC<AgentFormProps> = ({ nodeId, data }) => {
       <div className="pt-3" style={{ borderTop: '0.5px solid rgba(0,0,0,0.06)' }}>
         <MemoryPanel agentId={data.agent?.id} />
       </div>
+        </div>
+      </details>
       <button type="submit" className="w-full flex items-center justify-center gap-2 py-2.5 text-13 font-medium radius-sm" style={{ background: '#0071E3', color: '#FFFFFF', border: 'none' }}>
         应用更改
       </button>
@@ -1099,7 +1112,7 @@ interface EventFlowFormProps {
 
 const EventFlowPropertyForm: React.FC<EventFlowFormProps> = ({ nodeId, flowType, data }) => {
   const { updateNodeData } = useFlowStore();
-  const { register, handleSubmit, watch } = useForm({
+  const { register, handleSubmit } = useForm({
     defaultValues: {
       name: (data.name as string) || '',
       event_name: (data.event_name as string) || '',

@@ -1,7 +1,7 @@
 /* 分层记忆管理面板 — 编辑 project_memory、agent_experience 和 RAG 配置 */
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { BookOpen, Brain, Save, Loader2, Settings, Sliders } from 'lucide-react';
+import { BookOpen, Brain, Save, Loader2, Settings } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { apiClient } from '../../api/client';
 
@@ -19,10 +19,10 @@ export const MemoryPanel: React.FC<MemoryPanelProps> = ({ agentId }) => {
   const [chunkSize, setChunkSize] = useState(500);
   const [chunkOverlap, setChunkOverlap] = useState(50);
   const [retrievalStrategy, setRetrievalStrategy] = useState('hybrid');
-  // 复合评分权重
-  const [alpha, setAlpha] = useState(0.3);
-  const [beta, setBeta] = useState(0.4);
-  const [gamma, setGamma] = useState(0.3);
+  // 复合评分权重（保留供后续 RAG 评分调参）
+  const [_alpha, _setAlpha] = useState(0.3);
+  const [_beta, _setBeta] = useState(0.4);
+  const [_gamma, _setGamma] = useState(0.3);
 
   useEffect(() => {
     if (!crewId) return;

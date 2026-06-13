@@ -11,7 +11,7 @@ export interface ToolMeta {
   icon: string;
   shortDesc: string;
   description: string;
-  category: 'search' | 'file' | 'code' | 'data' | 'media' | 'analysis';
+  category: 'search' | 'file' | 'code' | 'data' | 'media' | 'analysis' | 'memory';
   implemented: boolean;
   requiredCapabilities: ToolCapability[];
   openaiSchema: {
@@ -231,6 +231,83 @@ const TOOL_DEFINITIONS: ToolMeta[] = [
             target_language: { type: 'string', description: 'Target language (for translation)' },
           },
           required: ['text', 'analysis_type'],
+        },
+      },
+    },
+  },
+  {
+    id: 'remember',
+    name: '记忆记录',
+    icon: 'memory',
+    shortDesc: '记录重要信息到长期记忆',
+    description: '将关键信息、结论或模式记录到长期记忆库中，供后续任务参考',
+    category: 'memory',
+    implemented: true,
+    requiredCapabilities: ['function_calling'],
+    openaiSchema: {
+      type: 'function',
+      function: {
+        name: 'remember',
+        description: '记录重要信息到长期记忆',
+        parameters: {
+          type: 'object',
+          properties: {
+            content: { type: 'string', description: '要记录的内容' },
+            memory_type: { type: 'string', enum: ['conclusion', 'feedback', 'pattern'], description: '记忆类型' },
+            importance: { type: 'integer', minimum: 0, maximum: 5, description: '重要性评分 0-5' },
+          },
+          required: ['content'],
+        },
+      },
+    },
+  },
+  {
+    id: 'recall',
+    name: '记忆检索',
+    icon: 'memory',
+    shortDesc: '搜索长期记忆库，检索相关历史信息',
+    description: '通过自然语言查询搜索长期记忆，获取相关的历史结论、反馈和模式',
+    category: 'memory',
+    implemented: true,
+    requiredCapabilities: ['function_calling'],
+    openaiSchema: {
+      type: 'function',
+      function: {
+        name: 'recall',
+        description: '搜索长期记忆库，检索相关历史信息',
+        parameters: {
+          type: 'object',
+          properties: {
+            query: { type: 'string', description: '自然语言搜索查询' },
+            top_k: { type: 'integer', default: 5, description: '返回结果数量' },
+          },
+          required: ['query'],
+        },
+      },
+    },
+  },
+  {
+    id: 'search_knowledge',
+    name: '知识库搜索',
+    icon: 'memory',
+    shortDesc: '搜索知识库中的文档资料',
+    description: '在指定的知识库或全部知识库中搜索相关文档和资料',
+    category: 'memory',
+    implemented: true,
+    requiredCapabilities: ['function_calling'],
+    openaiSchema: {
+      type: 'function',
+      function: {
+        name: 'search_knowledge',
+        description: '搜索知识库中的文档资料',
+        parameters: {
+          type: 'object',
+          properties: {
+            query: { type: 'string', description: '搜索查询' },
+            kb_name: { type: 'string', description: '指定知识库名称（可选）' },
+            top_k: { type: 'integer', default: 5, description: '返回结果数量' },
+          },
+          required: ['query'],
         },
       },
     },

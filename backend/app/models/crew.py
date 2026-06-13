@@ -19,6 +19,8 @@ class ProcessType(str, enum.Enum):
     EVALUATOR_OPTIMIZER = "evaluator_optimizer"
     # 事件驱动流程
     EVENT_FLOW = "event_flow"
+    # 动态规划流程 — Agent 自主分解目标并逐步执行
+    PLAN_EXECUTE = "plan_execute"
 
 
 class Crew(BaseModel):

@@ -80,7 +80,7 @@ async def test_user(client: AsyncClient) -> dict:
     uid = random.randint(10000, 99999)
     email = f"test_{uid}@example.com"
     username = f"testuser_{uid}"
-    password = "TestPass123"
+    password = "Test@1234"
 
     # 注册
     response = await client.post(
@@ -121,7 +121,7 @@ async def test_superuser(client: AsyncClient, db_session) -> dict:
     uid = random.randint(10000, 99999)
     email = f"admin_{uid}@example.com"
     username = f"admin_{uid}"
-    password = "AdminPass123"
+    password = "Admin@1234"
 
     # 直接在数据库中创建超级管理员
     user = User(

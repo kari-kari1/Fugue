@@ -113,6 +113,16 @@ jobs:
           cd frontend
           npm run build
 
+      - name: Run tests
+        run: |
+          cd frontend
+          npm test
+
+      - name: Security audit
+        run: |
+          cd frontend
+          npm audit --audit-level=high
+
   # Docker构建测试
   docker-build:
     runs-on: ubuntu-latest

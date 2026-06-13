@@ -159,8 +159,8 @@ class PluginLoader:
             module = sys.modules.get(plugin_class.__module__)
             if module and hasattr(module, "__file__"):
                 return Path(module.__file__)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"Could not resolve plugin source path: {e}")
         return None
 
     async def reload_plugin(self, plugin_name: str):

@@ -15,6 +15,7 @@ import { iterationsApi } from '../api/iterations';
 import { apiClient } from '../api/client';
 import { useExecutionMonitor } from '../hooks/useExecutionMonitor';
 import { RealtimeThoughts } from '../components/monitor/RealtimeThoughts';
+import { FeedbackButtons } from '../components/monitor/FeedbackButtons';
 import { ConnectionStatus } from '../components/monitor/ConnectionStatus';
 import { ExportModal } from '../components/editor/ExportModal';
 import { useThemeStore } from '../stores/themeStore';
@@ -358,6 +359,32 @@ function friendlyToolDescription(toolName: string, args: Record<string, unknown>
   return `请求${cnName}`;
 }
 
+/** 隐式反馈追踪 — 记录用户行为信号用于反馈闭环 */
+function trackImplicitFeedback(
+  action: 'copy' | 'dismiss' | 'positive' | 'negative',
+  executionId: string,
+  signal: 'positive' | 'neutral' | 'negative',
+) {
+  try {
+    const stored = localStorage.getItem('feedback_log');
+    const log: Array<{ timestamp: string; action: string; execution_id: string; signal: string }> =
+      stored ? JSON.parse(stored) : [];
+    log.push({
+      timestamp: new Date().toISOString(),
+      action,
+      execution_id: executionId,
+      signal,
+    });
+    // 只保留最近 500 条，避免无限增长
+    if (log.length > 500) {
+      log.splice(0, log.length - 500);
+    }
+    localStorage.setItem('feedback_log', JSON.stringify(log));
+  } catch {
+    // localStorage 不可用时静默失败
+  }
+}
+
 const ExecutionView: React.FC = () => {
   const { executionId } = useParams<{ executionId: string }>();
   const navigate = useNavigate();
@@ -398,6 +425,15 @@ const ExecutionView: React.FC = () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // 导航离开时记录隐式反馈 (dismiss = 未显式评价就退出)
+  useEffect(() => {
+    return () => {
+      if (executionId) {
+        trackImplicitFeedback('dismiss', executionId, 'neutral');
+      }
+    };
+  }, [executionId]);
 
   const { data: execution, isLoading: execLoading } = useQuery({
     queryKey: ['execution', executionId],
@@ -751,21 +787,39 @@ const ExecutionView: React.FC = () => {
           </div>
 
           {isRunning && (
-            <motion.button
-              onClick={handleCancel}
-              whileHover={{ borderColor: 'rgba(255,69,58,0.4)', color: '#FF453A', boxShadow: '0 0 12px rgba(255,69,58,0.2)' }}
-              whileTap={{ scale: 0.97 }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '6px 14px', borderRadius: 8,
-                color: '#FF453A', background: 'transparent',
-                border: '0.5px solid rgba(255,69,58,0.2)',
-                fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, system-ui, sans-serif", fontSize: 12,
-                cursor: 'pointer',
-              }}
-            >
-              <XCircle style={{ width: 14, height: 14 }} /> 取消
-            </motion.button>
+            <>
+              <motion.button
+                onClick={handleCancel}
+                whileHover={{ borderColor: 'rgba(255,69,58,0.4)', color: '#FF453A', boxShadow: '0 0 12px rgba(255,69,58,0.2)' }}
+                whileTap={{ scale: 0.97 }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '6px 14px', borderRadius: 8,
+                  color: '#FF453A', background: 'transparent',
+                  border: '0.5px solid rgba(255,69,58,0.2)',
+                  fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, system-ui, sans-serif", fontSize: 12,
+                  cursor: 'pointer',
+                }}
+              >
+                <XCircle style={{ width: 14, height: 14 }} /> 取消
+              </motion.button>
+              <motion.button
+                onClick={handleCancel}
+                aria-label="停止生成"
+                whileHover={{ borderColor: 'rgba(245,158,11,0.4)', color: '#F59E0B', boxShadow: '0 0 12px rgba(245,158,11,0.2)' }}
+                whileTap={{ scale: 0.97 }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '6px 14px', borderRadius: 8,
+                  color: '#F59E0B', background: 'transparent',
+                  border: '0.5px solid rgba(245,158,11,0.2)',
+                  fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, system-ui, sans-serif", fontSize: 12,
+                  cursor: 'pointer',
+                }}
+              >
+                <XCircle style={{ width: 14, height: 14 }} /> 停止生成
+              </motion.button>
+            </>
           )}
 
           {!isRunning && (
@@ -1103,6 +1157,16 @@ const ExecutionView: React.FC = () => {
             status={execution?.status || ''}
             onStatusChange={() => queryClient.invalidateQueries({ queryKey: ['execution', executionId] })}
           />
+
+          {/* 反馈按钮 */}
+          <div style={CARD_STYLE}>
+            <FeedbackButtons
+              onPositive={() => trackImplicitFeedback('positive', executionId!, 'positive')}
+              onNegative={() => trackImplicitFeedback('negative', executionId!, 'negative')}
+              onRegenerate={() => { /* trigger re-execution or iteration */ }}
+              disabled={execution?.status !== 'completed'}
+            />
+          </div>
 
           {/* 最近事件 */}
           {realtimeEvents && realtimeEvents.length > 0 && (

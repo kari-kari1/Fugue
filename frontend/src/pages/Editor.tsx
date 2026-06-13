@@ -293,7 +293,7 @@ const FlowCanvas: React.FC<{ crewId: string }> = ({ crewId }) => {
   }, [crew]);
 
   const updateCrewMutation = useMutation({
-    mutationFn: (data: { name?: string; process?: 'sequential' | 'parallel' | 'hierarchical'; approval_mode?: string; workspace_dir?: string | null }) => crewsApi.update(crewId, data),
+    mutationFn: (data: { name?: string; process?: 'sequential' | 'parallel' | 'hierarchical' | 'prompt_chain' | 'router' | 'orchestrator' | 'evaluator_optimizer' | 'event_flow' | 'plan_execute'; approval_mode?: 'safe' | 'semi_auto' | 'full_auto'; workspace_dir?: string | null }) => crewsApi.update(crewId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['crew', crewId] });
       queryClient.invalidateQueries({ queryKey: ['crews'] });
@@ -615,7 +615,7 @@ const FlowCanvas: React.FC<{ crewId: string }> = ({ crewId }) => {
           <select
             value={crewProcess}
             onChange={(e) => {
-              const value = e.target.value as 'sequential' | 'parallel' | 'hierarchical';
+              const value = e.target.value as 'sequential' | 'parallel' | 'hierarchical' | 'prompt_chain' | 'router' | 'orchestrator' | 'evaluator_optimizer' | 'event_flow' | 'plan_execute';
               setCrewProcess(value);
               updateCrewMutation.mutate({ process: value });
             }}
@@ -631,6 +631,13 @@ const FlowCanvas: React.FC<{ crewId: string }> = ({ crewId }) => {
           >
             <option value="sequential">顺序执行</option>
             <option value="parallel">并行执行</option>
+            <option value="hierarchical">层级管理</option>
+            <option value="prompt_chain">提示链</option>
+            <option value="router">路由分发</option>
+            <option value="orchestrator">编排器-工作者</option>
+            <option value="evaluator_optimizer">评估优化</option>
+            <option value="event_flow">事件驱动</option>
+            <option value="plan_execute">规划执行</option>
           </select>
           <ChevronDown
             className="w-3.5 h-3.5 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none"
@@ -693,7 +700,7 @@ const FlowCanvas: React.FC<{ crewId: string }> = ({ crewId }) => {
                         return;
                       }
                       setApprovalMode(opt.value);
-                      updateCrewMutation.mutate({ approval_mode: opt.value });
+                      updateCrewMutation.mutate({ approval_mode: opt.value as 'safe' | 'semi_auto' | 'full_auto' });
                     }}
                     className="w-full text-left px-3 py-2 flex items-center gap-2 transition-colors"
                     style={{

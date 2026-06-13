@@ -267,8 +267,8 @@ async def _migrate_sqlite_columns(engine):
                 if 'chunk_overlap' not in mc_cols:
                     await conn.execute(sa.text("ALTER TABLE memory_configs ADD COLUMN chunk_overlap INTEGER DEFAULT 50"))
                     logger.info("Migration: added 'chunk_overlap' column to memory_configs table")
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"Auto-migration check failed (non-critical): {e}")
 
             # agent_memories.scope（scope路径式记忆）
             try:

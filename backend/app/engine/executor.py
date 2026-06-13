@@ -319,14 +319,14 @@ class ExecutionEngine:
                     from app.services.worktree_manager import get_worktree_manager
                     wt_mgr = get_worktree_manager()
                     await wt_mgr.remove_worktree(self._worktree_path)
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug(f"Worktree cleanup failed (non-critical): {e}")
                 self._worktree_path = None
             try:
                 from app.engine.tools import clear_workspace_dir
                 clear_workspace_dir()
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(f"Workspace cleanup failed (non-critical): {e}")
             try:
                 async with get_db_session() as db:
                     execution = await db.get(Execution, execution_id)
@@ -593,6 +593,91 @@ class ExecutionEngine:
                 is_parallel = crew.process == ProcessType.PARALLEL
                 is_orchestrator = crew.process == ProcessType.ORCHESTRATOR
                 is_event_flow = crew.process == ProcessType.EVENT_FLOW
+                is_plan_execute = crew.process == ProcessType.PLAN_EXECUTE
+                is_hierarchical = crew.process == ProcessType.HIERARCHICAL
+                is_evaluator_optimizer = crew.process == ProcessType.EVALUATOR_OPTIMIZER
+                is_prompt_chain = crew.process == ProcessType.PROMPT_CHAIN
+                is_router = crew.process == ProcessType.ROUTER
+
+                # Plan-Execute 模式：Agent 自主生成计划并逐步执行
+                if is_plan_execute:
+                    pe_result = await self._execute_plan_execute(
+                        db, execution, tasks_with_agent, agents_map, task_map,
+                        task_outputs, task_exec_map, completed_task_ids,
+                        total_tokens, total_cost, completed_count, total_tasks,
+                    )
+                    execution.status = ExecutionStatus.COMPLETED
+                    execution.completed_at = datetime.utcnow()
+                    execution.total_tokens_used = pe_result["total_tokens"]
+                    execution.total_cost_usd = pe_result["total_cost"]
+                    execution.results = {"outputs": task_outputs, "mode": "plan_execute", **pe_result}
+                    self._add_trace(execution, "crew.completed", data={"mode": "plan_execute"})
+                    await db.commit()
+                    return
+
+                # Hierarchical 模式：Manager 审查 Worker 输出
+                if is_hierarchical and len(agents_map) >= 2 and tasks_with_agent:
+                    hier_result = await self._execute_hierarchical(
+                        db, execution, tasks_with_agent, agents_map, task_map,
+                        task_outputs, task_exec_map, completed_task_ids,
+                        total_tokens, total_cost, completed_count, total_tasks,
+                    )
+                    execution.status = ExecutionStatus.COMPLETED
+                    execution.completed_at = datetime.utcnow()
+                    execution.total_tokens_used = hier_result["total_tokens"]
+                    execution.total_cost_usd = hier_result["total_cost"]
+                    execution.results = {"outputs": task_outputs, "mode": "hierarchical", **hier_result}
+                    self._add_trace(execution, "crew.completed", data={"mode": "hierarchical"})
+                    await db.commit()
+                    return
+
+                # Evaluator-Optimizer 模式：评估 + 优化循环
+                if is_evaluator_optimizer and len(agents_map) >= 2 and tasks_with_agent:
+                    eo_result = await self._execute_evaluator_optimizer(
+                        db, execution, tasks_with_agent, agents_map, task_map,
+                        task_outputs, task_exec_map, completed_task_ids,
+                        total_tokens, total_cost, completed_count, total_tasks,
+                    )
+                    execution.status = ExecutionStatus.COMPLETED
+                    execution.completed_at = datetime.utcnow()
+                    execution.total_tokens_used = eo_result["total_tokens"]
+                    execution.total_cost_usd = eo_result["total_cost"]
+                    execution.results = {"outputs": task_outputs, "mode": "evaluator_optimizer", **eo_result}
+                    self._add_trace(execution, "crew.completed", data={"mode": "evaluator_optimizer"})
+                    await db.commit()
+                    return
+
+                # Prompt Chain 模式：链式顺序处理
+                if is_prompt_chain:
+                    pc_result = await self._execute_prompt_chain(
+                        db, execution, tasks_with_agent, agents_map, task_map,
+                        task_outputs, task_exec_map, completed_task_ids,
+                        total_tokens, total_cost, completed_count, total_tasks,
+                    )
+                    execution.status = ExecutionStatus.COMPLETED
+                    execution.completed_at = datetime.utcnow()
+                    execution.total_tokens_used = pc_result["total_tokens"]
+                    execution.total_cost_usd = pc_result["total_cost"]
+                    execution.results = {"outputs": task_outputs, "mode": "prompt_chain", **pc_result}
+                    self._add_trace(execution, "crew.completed", data={"mode": "prompt_chain"})
+                    await db.commit()
+                    return
+
+                # Router 模式：分类 + 路由
+                if is_router and len(agents_map) >= 2 and tasks_with_agent:
+                    router_result = await self._execute_router(
+                        db, execution, tasks_with_agent, agents_map, task_map,
+                        task_outputs, task_exec_map, completed_task_ids,
+                        total_tokens, total_cost, completed_count, total_tasks,
+                    )
+                    execution.status = ExecutionStatus.COMPLETED
+                    execution.completed_at = datetime.utcnow()
+                    execution.total_tokens_used = router_result["total_tokens"]
+                    execution.total_cost_usd = router_result["total_cost"]
+                    execution.results = {"outputs": task_outputs, "mode": "router", **router_result}
+                    self._add_trace(execution, "crew.completed", data={"mode": "router"})
+                    await db.commit()
+                    return
 
                 # Event Flow 模式：使用事件驱动编排器
                 if is_event_flow:
@@ -897,8 +982,8 @@ class ExecutionEngine:
                                 copied += 1
                     if copied > 0:
                         logger.info(f"[EXECUTOR] Error path: copied {copied} files to workspace")
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning(f"Error path file copy failed: {e}")
             # 清理 Git Worktree（异常路径）
             if getattr(self, '_worktree_path', None):
                 try:
@@ -913,8 +998,8 @@ class ExecutionEngine:
             try:
                 from app.engine.tools import clear_workspace_dir
                 clear_workspace_dir()
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"Error path workspace cleanup failed: {e}")
             # 最后的防线：确保异常情况下也能更新数据库状态
             try:
                 async with get_db_session() as db:
@@ -939,8 +1024,8 @@ class ExecutionEngine:
             try:
                 from app.engine.tools import clear_workspace_dir
                 clear_workspace_dir()
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(f"Workspace cleanup in finally failed (non-critical): {e}")
             if getattr(self, '_worktree_path', None):
                 try:
                     from app.services.worktree_manager import get_worktree_manager
@@ -953,8 +1038,8 @@ class ExecutionEngine:
                         await _aio.wait_for(cleanup_task, timeout=3.0)
                     except _aio.TimeoutError:
                         cleanup_task.cancel()
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug(f"Worktree cleanup in finally failed (non-critical): {e}")
                 self._worktree_path = None
 
     # --- 附件注入 ---
@@ -1881,8 +1966,8 @@ class ExecutionEngine:
         if generator:
             try:
                 return generator(arguments)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"Tool call description failed for {tool_name}: {e}")
         return f"正在调用工具 {tool_name}..."
 
     @staticmethod
@@ -3227,6 +3312,382 @@ async def start_execution(
     finally:
         _running_engines.pop(execution_id, None)
         logger.info(f"[START_EXECUTION] Execution {execution_id} removed from running engines")
+
+
+    # ═══════════════════════════════════════════════════════════════
+    # 新增 ProcessType 实现（报告第1.1, 1.4节）
+    # ═══════════════════════════════════════════════════════════════
+
+    async def _execute_plan_execute(
+        self, db, execution, tasks, agents_map, task_map,
+        task_outputs, task_exec_map, completed_task_ids,
+        total_tokens, total_cost, completed_count, total_tasks,
+    ) -> Dict[str, Any]:
+        """Plan-Execute 模式：Agent 先规划再执行。
+
+        1. Plan Phase — 取第一个 Agent 作为 Planner，生成结构化计划
+        2. Execute Phase — 按计划逐步调用工具执行
+        """
+        logger.info(f"[PLAN_EXECUTE] Starting with {len(tasks)} task(s), {len(agents_map)} agent(s)")
+
+        for task in sorted(tasks, key=lambda t: t.order if hasattr(t, 'order') else 0):
+            if self._cancelled or self._paused:
+                break
+            if task.id in completed_task_ids:
+                continue
+
+            agent = agents_map.get(task.agent_id)
+            if not agent:
+                continue
+
+            # Plan Phase: 让 LLM 生成执行计划
+            plan_prompt = (
+                "在开始执行之前，请先制定一个详细的执行计划。\n"
+                "以 JSON 格式输出，包含以下字段：\n"
+                '{"steps": [{"step": 1, "action": "描述要做什么", "tool": "工具名（可选）", "expected": "预期结果"}]}\n'
+                "然后逐步执行你的计划。"
+            )
+            task_with_plan = type('_PlanTask', (), {
+                'id': task.id, 'name': task.name,
+                'description': f"{plan_prompt}\n\n原始任务：{task.description}",
+                'expected_output': task.expected_output, 'agent_id': task.agent_id,
+                'timeout_seconds': getattr(task, 'timeout_seconds', 300),
+                'max_retries': getattr(task, 'max_retries', 1),
+            })()
+
+            te = task_exec_map.get(task.id)
+            result = await self._execute_task(
+                db, execution, task_with_plan, agent, te, task_outputs, task_exec_map,
+                completed_task_ids, total_tokens, total_cost, completed_count,
+            )
+            total_tokens = result["total_tokens"]
+            total_cost = result["total_cost"]
+            if result["completed"]:
+                completed_count += 1
+
+        return {"total_tokens": total_tokens, "total_cost": total_cost, "completed_count": completed_count}
+
+    async def _execute_hierarchical(
+        self, db, execution, tasks, agents_map, task_map,
+        task_outputs, task_exec_map, completed_task_ids,
+        total_tokens, total_cost, completed_count, total_tasks,
+    ) -> Dict[str, Any]:
+        """Hierarchical 模式：Manager 审查 Worker 输出。
+
+        1. Worker agents 执行各自任务
+        2. Manager agent 审查每个 Worker 的输出
+        3. Manager 决定：通过 / 修改 / 重新分配
+        """
+        manager_keywords = ['manager', 'coordinator', 'orchestrator', 'reviewer', '管理者', '协调者', '审查者']
+        manager_agent = None
+        worker_agents = {}
+        for aid, agent in agents_map.items():
+            role_lower = (agent.role or '').lower()
+            if any(kw in role_lower for kw in manager_keywords):
+                manager_agent = agent
+            else:
+                worker_agents[aid] = agent
+
+        if not manager_agent:
+            # 无 Manager — 降级为 Sequential
+            logger.warning("[HIERARCHICAL] No manager found, falling back to sequential")
+            return await self._execute_sequential_fallback(
+                db, execution, tasks, agents_map, task_map,
+                task_outputs, task_exec_map, completed_task_ids,
+                total_tokens, total_cost, completed_count, total_tasks,
+            )
+
+        max_review_rounds = 3
+        for review_round in range(max_review_rounds):
+            all_approved = True
+            for task in tasks:
+                if self._cancelled or self._paused:
+                    break
+                if task.id in completed_task_ids:
+                    continue
+                agent = worker_agents.get(task.agent_id, agents_map.get(task.agent_id))
+                if not agent:
+                    continue
+
+                te = task_exec_map.get(task.id)
+                result = await self._execute_task(
+                    db, execution, task, agent, te, task_outputs, task_exec_map,
+                    completed_task_ids, total_tokens, total_cost, completed_count,
+                )
+                total_tokens = result["total_tokens"]
+                total_cost = result["total_cost"]
+                worker_output = task_outputs.get(task.id, "")
+
+                # Manager review
+                if manager_agent and review_round < max_review_rounds - 1:
+                    review_task = type('_ReviewTask', (), {
+                        'id': f"{task.id}_review_{review_round}",
+                        'name': f"审查: {task.name}",
+                        'description': f"审查以下工作产出，判断是否通过（回复 APPROVED 或 REVISION_NEEDED: <原因>）：\n\n{worker_output[:2000]}",
+                        'expected_output': 'APPROVED 或 REVISION_NEEDED: <具体修改建议>',
+                        'agent_id': manager_agent.id,
+                        'timeout_seconds': 120, 'max_retries': 0,
+                    })()
+                    review_te = None
+                    review_result = await self._execute_task(
+                        db, execution, review_task, manager_agent, review_te, task_outputs, task_exec_map,
+                        completed_task_ids, total_tokens, total_cost, completed_count,
+                    )
+                    total_tokens = review_result["total_tokens"]
+                    total_cost = review_result["total_cost"]
+                    review_output = task_outputs.get(review_task.id, "")
+
+                    if "APPROVED" in review_output.upper():
+                        completed_task_ids.append(task.id)
+                        completed_count += 1
+                    else:
+                        all_approved = False
+                        task_outputs[task.id] = f"[需修改 - 审查意见] {review_output}\n\n[原始输出] {worker_output}"
+                else:
+                    completed_task_ids.append(task.id)
+                    completed_count += 1
+
+            if all_approved or review_round >= max_review_rounds - 1:
+                break
+
+        return {"total_tokens": total_tokens, "total_cost": total_cost, "completed_count": completed_count}
+
+    async def _execute_evaluator_optimizer(
+        self, db, execution, tasks, agents_map, task_map,
+        task_outputs, task_exec_map, completed_task_ids,
+        total_tokens, total_cost, completed_count, total_tasks,
+    ) -> Dict[str, Any]:
+        """Evaluator-Optimizer 模式：评估 + 优化质量循环。
+
+        1. Generator agent 生成输出
+        2. Evaluator agent 评分并给出改进建议
+        3. Optimizer 根据反馈重新生成
+        4. 循环直到质量达标
+        """
+        evaluator_keywords = ['evaluator', 'critic', 'reviewer', 'judge', '评估者', '审查者', '评判者']
+        optimizer_keywords = ['optimizer', 'generator', 'writer', 'creator', '优化者', '生成者']
+
+        evaluator_agent = None
+        optimizer_agent = None
+        for aid, agent in agents_map.items():
+            role_lower = (agent.role or '').lower()
+            if not evaluator_agent and any(kw in role_lower for kw in evaluator_keywords):
+                evaluator_agent = agent
+            elif not optimizer_agent and any(kw in role_lower for kw in optimizer_keywords):
+                optimizer_agent = agent
+
+        if not evaluator_agent or not optimizer_agent:
+            logger.warning("[EVALUATOR_OPTIMIZER] Missing evaluator/optimizer, falling back to sequential")
+            return await self._execute_sequential_fallback(
+                db, execution, tasks, agents_map, task_map,
+                task_outputs, task_exec_map, completed_task_ids,
+                total_tokens, total_cost, completed_count, total_tasks,
+            )
+
+        max_optimize_rounds = 3
+        quality_threshold = 7  # 1-10 scale
+
+        for task in tasks:
+            if self._cancelled or self._paused:
+                break
+            if task.id in completed_task_ids:
+                continue
+
+            for opt_round in range(max_optimize_rounds):
+                # Generator produces output
+                gen_task = type('_GenTask', (), {
+                    'id': f"{task.id}_gen_{opt_round}",
+                    'name': task.name,
+                    'description': task.description + (
+                        f"\n\n[优化反馈] {task_outputs.get(f'{task.id}_eval', '')}" if opt_round > 0 else ""
+                    ),
+                    'expected_output': task.expected_output,
+                    'agent_id': optimizer_agent.id,
+                    'timeout_seconds': getattr(task, 'timeout_seconds', 300),
+                    'max_retries': getattr(task, 'max_retries', 1),
+                })()
+                gen_te = None
+                gen_result = await self._execute_task(
+                    db, execution, gen_task, optimizer_agent, gen_te, task_outputs, task_exec_map,
+                    completed_task_ids, total_tokens, total_cost, completed_count,
+                )
+                total_tokens = gen_result["total_tokens"]
+                total_cost = gen_result["total_cost"]
+                gen_output = task_outputs.get(gen_task.id, "")
+
+                # Evaluator scores
+                eval_task = type('_EvalTask', (), {
+                    'id': f"{task.id}_eval",
+                    'name': f"评估: {task.name}",
+                    'description': (
+                        f"评估以下输出质量（1-10分），给出具体改进建议。\n"
+                        f"回复格式：SCORE: <分数>\nFEEDBACK: <建议>\nDECISION: PASS/REVISE\n\n--- 待评估输出 ---\n{gen_output[:3000]}"
+                    ),
+                    'expected_output': 'SCORE: <1-10>\nFEEDBACK: <改进建议>\nDECISION: PASS|REVISE',
+                    'agent_id': evaluator_agent.id,
+                    'timeout_seconds': 120, 'max_retries': 0,
+                })()
+                eval_te = None
+                eval_result = await self._execute_task(
+                    db, execution, eval_task, evaluator_agent, eval_te, task_outputs, task_exec_map,
+                    completed_task_ids, total_tokens, total_cost, completed_count,
+                )
+                total_tokens = eval_result["total_tokens"]
+                total_cost = eval_result["total_cost"]
+                eval_output = task_outputs.get(eval_task.id, "")
+
+                # Check if passes quality threshold
+                import re
+                score_match = re.search(r'SCORE:\s*(\d+)', eval_output)
+                score = int(score_match.group(1)) if score_match else 5
+
+                if "PASS" in eval_output.upper() or score >= quality_threshold or opt_round >= max_optimize_rounds - 1:
+                    task_outputs[task.id] = gen_output
+                    completed_task_ids.append(task.id)
+                    completed_count += 1
+                    break
+                else:
+                    task_outputs[f"{task.id}_eval"] = eval_output
+
+        return {"total_tokens": total_tokens, "total_cost": total_cost, "completed_count": completed_count}
+
+    async def _execute_prompt_chain(
+        self, db, execution, tasks, agents_map, task_map,
+        task_outputs, task_exec_map, completed_task_ids,
+        total_tokens, total_cost, completed_count, total_tasks,
+    ) -> Dict[str, Any]:
+        """Prompt Chain 模式：链式顺序，前一个任务的输出作为下一个任务的输入。"""
+        logger.info(f"[PROMPT_CHAIN] Starting chain with {len(tasks)} task(s)")
+
+        chain_context = ""
+        for task in sorted(tasks, key=lambda t: t.order if hasattr(t, 'order') else 0):
+            if self._cancelled or self._paused:
+                break
+            if task.id in completed_task_ids:
+                continue
+
+            agent = agents_map.get(task.agent_id)
+            if not agent:
+                continue
+
+            if chain_context:
+                task.description = f"{task.description}\n\n[链式上下文 — 上一步的输出]\n{chain_context[:2000]}"
+
+            te = task_exec_map.get(task.id)
+            result = await self._execute_task(
+                db, execution, task, agent, te, task_outputs, task_exec_map,
+                completed_task_ids, total_tokens, total_cost, completed_count,
+            )
+            total_tokens = result["total_tokens"]
+            total_cost = result["total_cost"]
+            if result["completed"]:
+                completed_count += 1
+                chain_context = task_outputs.get(task.id, chain_context)
+
+        return {"total_tokens": total_tokens, "total_cost": total_cost, "completed_count": completed_count}
+
+    async def _execute_router(
+        self, db, execution, tasks, agents_map, task_map,
+        task_outputs, task_exec_map, completed_task_ids,
+        total_tokens, total_cost, completed_count, total_tasks,
+    ) -> Dict[str, Any]:
+        """Router 模式：Router agent 分析输入，路由到专门处理该类型任务的专家 agent。"""
+        router_keywords = ['router', 'dispatcher', 'classifier', '路由', '分发', '分类']
+        router_agent = None
+        worker_agents = {}
+        for aid, agent in agents_map.items():
+            role_lower = (agent.role or '').lower()
+            if not router_agent and any(kw in role_lower for kw in router_keywords):
+                router_agent = agent
+            else:
+                worker_agents[aid] = agent
+
+        if not router_agent:
+            logger.warning("[ROUTER] No router found, using first agent as router")
+            router_agent = list(agents_map.values())[0]
+
+        for task in tasks:
+            if self._cancelled or self._paused:
+                break
+            if task.id in completed_task_ids:
+                continue
+
+            # Route: Let router analyze and direct the task
+            route_prompt = (
+                f"分析以下任务并选择最合适的处理专家：\n\n{task.description[:1000]}\n\n"
+                f"可用的专家及其角色：\n"
+                + "\n".join(f"- {agent.name}: {agent.role}" for agent in worker_agents.values())
+                + "\n\n回复格式：EXPERT: <专家名称>\nREASON: <选择理由>"
+            )
+
+            route_task = type('_RouteTask', (), {
+                'id': f"{task.id}_route",
+                'name': f"路由决策: {task.name}",
+                'description': route_prompt,
+                'expected_output': 'EXPERT: <name>\nREASON: <reason>',
+                'agent_id': router_agent.id,
+                'timeout_seconds': 120, 'max_retries': 0,
+            })()
+            route_te = None
+            route_result = await self._execute_task(
+                db, execution, route_task, router_agent, route_te, task_outputs, task_exec_map,
+                completed_task_ids, total_tokens, total_cost, completed_count,
+            )
+            total_tokens = route_result["total_tokens"]
+            total_cost = route_result["total_cost"]
+
+            # Find the chosen expert
+            route_output = task_outputs.get(route_task.id, "")
+            chosen_agent = None
+            for aid, agent in worker_agents.items():
+                if agent.name.lower() in route_output.lower():
+                    chosen_agent = agent
+                    break
+            if not chosen_agent:
+                chosen_agent = agents_map.get(task.agent_id) or list(agents_map.values())[0]
+
+            # Execute with chosen expert
+            te = task_exec_map.get(task.id)
+            result = await self._execute_task(
+                db, execution, task, chosen_agent, te, task_outputs, task_exec_map,
+                completed_task_ids, total_tokens, total_cost, completed_count,
+            )
+            total_tokens = result["total_tokens"]
+            total_cost = result["total_cost"]
+            if result["completed"]:
+                completed_count += 1
+
+        return {"total_tokens": total_tokens, "total_cost": total_cost, "completed_count": completed_count}
+
+    async def _execute_sequential_fallback(
+        self, db, execution, tasks, agents_map, task_map,
+        task_outputs, task_exec_map, completed_task_ids,
+        total_tokens, total_cost, completed_count, total_tasks,
+    ) -> Dict[str, Any]:
+        """退路：顺序执行（当特殊模式的 Agent 不可用时）。"""
+        levels = self._topological_levels(tasks, task_map)
+        for level in levels:
+            for task_id in level:
+                if self._cancelled or self._paused:
+                    break
+                if task_id in completed_task_ids:
+                    continue
+                task = task_map.get(task_id)
+                if not task:
+                    continue
+                agent = agents_map.get(task.agent_id)
+                if not agent:
+                    continue
+                te = task_exec_map.get(task.id)
+                result = await self._execute_task(
+                    db, execution, task, agent, te, task_outputs, task_exec_map,
+                    completed_task_ids, total_tokens, total_cost, completed_count,
+                )
+                total_tokens = result["total_tokens"]
+                total_cost = result["total_cost"]
+                if result["completed"]:
+                    completed_count += 1
+        return {"total_tokens": total_tokens, "total_cost": total_cost, "completed_count": completed_count}
 
 
 def cancel_execution_engine(execution_id: str) -> bool:
