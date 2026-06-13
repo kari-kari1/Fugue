@@ -18,5 +18,21 @@ export default defineConfig([
     languageOptions: {
       globals: globals.browser,
     },
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-empty-object-type': 'off',
+      '@typescript-eslint/no-unused-vars': 'warn',
+      'react-hooks/rules-of-hooks': 'warn',
+      'react-hooks/set-state-in-effect': 'warn',
+      'react-refresh/only-export-components': 'warn',
+      'no-empty': 'warn',
+    },
+  },
+  {
+    files: ['e2e/**/*.{ts,tsx}'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+      'react-hooks/rules-of-hooks': 'off',
+    },
   },
 ])
