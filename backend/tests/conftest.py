@@ -1,5 +1,6 @@
 """测试配置和fixtures"""
 import asyncio
+import os
 from typing import AsyncGenerator
 import pytest
 import pytest_asyncio
@@ -12,8 +13,8 @@ from app.core.database import get_db, db_session_manager
 from app.models.base import Base
 from app.core.config import settings
 
-# 测试数据库URL（使用SQLite内存数据库）
-TEST_DATABASE_URL = "sqlite+aiosqlite:///./test.db"
+# 测试数据库URL：优先使用环境变量（CI使用PostgreSQL），否则用SQLite
+TEST_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./test.db")
 
 # 统一全局数据库管理器使用测试数据库，确保executor也能访问测试数据
 db_session_manager.reset_for_testing(TEST_DATABASE_URL)
