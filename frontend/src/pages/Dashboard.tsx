@@ -8,7 +8,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Plus, Trash2, Play, Clock, Settings, LayoutGrid, Puzzle,
   Globe, CalendarClock, Rocket, FileCode2, Key, ChevronRight, BookOpen,
-  BarChart3, CheckCircle2, Zap, DollarSign, Loader2, Moon, Sun,
+  BarChart3, CheckCircle2, Zap, DollarSign, Loader2,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { crewsApi } from '../api/crews';
@@ -50,7 +50,7 @@ const NAV_LINKS = [
   { label: 'Plugins',     path: '/plugins',          icon: Puzzle },
   { label: 'MCP Tools',   path: '/mcp-marketplace',  icon: FileCode2 },
   { label: '知识库',     path: '/knowledge-bases',  icon: BookOpen },
-  { label: 'API Keys',    path: '/settings',         icon: Key },
+  { label: '设置',       path: '/settings',         icon: Key },
   { label: 'Webhooks',    path: '/webhooks',         icon: Globe },
   { label: 'Schedules',   path: '/schedules',        icon: CalendarClock },
   { label: 'API Publish', path: '/published',        icon: Rocket },
@@ -473,15 +473,6 @@ const Dashboard: React.FC = () => {
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
 
-  // Dark/light theme toggle
-  const [isDark, setIsDark] = useState(() => localStorage.getItem('theme') === 'dark');
-  const toggleTheme = () => {
-    const next = !isDark;
-    setIsDark(next);
-    document.documentElement.setAttribute('data-theme', next ? 'dark' : 'light');
-    localStorage.setItem('theme', next ? 'dark' : 'light');
-  };
-
   // Language switcher
   const [lang, setLangState] = useState(getLang());
   const toggleLang = () => {
@@ -620,26 +611,6 @@ const Dashboard: React.FC = () => {
 
           {/* Right: user controls */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-            {/* Theme toggle */}
-            <motion.button
-              onClick={toggleTheme}
-              whileTap={{ scale: 0.97 }}
-              whileHover={{ color: TEXT_PRIMARY }}
-              transition={SPRING}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                color: TEXT_SECONDARY,
-                padding: '6px',
-                borderRadius: '6px',
-                display: 'flex',
-                alignItems: 'center',
-              }}
-              title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-            >
-              {isDark ? <Sun size={18} /> : <Moon size={18} />}
-            </motion.button>
             {/* Language switcher */}
             <motion.button
               onClick={toggleLang}

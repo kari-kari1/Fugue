@@ -36,6 +36,11 @@
       "icons/icon.ico"
     ],
     "externalBin": ["binaries/fugue-backend"],
-    "resources": []
+    "resources": [],
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser"
+      }
+    }
   }
 }

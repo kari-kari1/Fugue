@@ -103,13 +103,21 @@ fn main() {
         })
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::Destroyed = event {
-                println!("[Fugue] Cleaning up backend...");
+                println!("[Fugue] Cleaning up backend and sidecar...");
+                // Kill managed child process
                 if let Some(state) = window.try_state::<BackendChild>() {
                     if let Ok(mut guard) = state.0.lock() {
                         if let Some(child) = guard.take() {
                             let _ = child.kill();
                         }
                     }
+                }
+                // Force-kill any remaining backend processes
+                #[cfg(target_os = "windows")]
+                {
+                    let _ = std::process::Command::new("taskkill")
+                        .args(["/F", "/IM", "fugue-backend.exe"])
+                        .output();
                 }
             }
         })

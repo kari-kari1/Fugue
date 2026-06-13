@@ -74,10 +74,14 @@ async def list_templates(
     category: Optional[str] = None,
     search: Optional[str] = None,
     sort_by: Optional[str] = Query(None, pattern="^(popular|newest|recommended)$"),
+    preferred: Optional[str] = Query(None, description="逗号分隔的偏好类别，匹配的模板优先"),
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
 ):
-    """获取模板列表（内置模板 + 当前用户的自定义模板）"""
+    """获取模板列表（内置模板 + 当前用户的自定义模板）。
+
+    支持 preferred 参数：传入用户偏好类别（逗号分隔），匹配的模板会排在前面。
+    """
     query = select(Template).where(
         (Template.is_builtin == True) | (Template.user_id == current_user.id)
     )
@@ -91,8 +95,18 @@ async def list_templates(
             | (Template.description.ilike(f"%{search}%"))
         )
 
-    # 排序
-    if sort_by == "newest":
+    # 偏好排序：匹配 preferred 类别的模板优先
+    preferred_categories = [c.strip() for c in (preferred or "").split(",") if c.strip()]
+    if preferred_categories and sort_by != "newest":
+        from sqlalchemy import case
+        # 构建 CASE WHEN 排序：匹配偏好类别 → 0 (优先)，其他 → 1
+        whens = [(Template.category == cat, 0) for cat in preferred_categories]
+        priority = case(*whens, else_=1)
+        if sort_by == "recommended":
+            query = query.order_by(priority, Template.rating.desc(), Template.use_count.desc())
+        else:
+            query = query.order_by(priority, Template.use_count.desc())
+    elif sort_by == "newest":
         query = query.order_by(Template.created_at.desc())
     elif sort_by == "recommended":
         query = query.order_by(Template.rating.desc(), Template.use_count.desc())

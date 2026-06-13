@@ -175,6 +175,8 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
     return <Navigate to="/login" replace />;
   }
 
+  // 检测老用户：Zustand store 初始化时已同步检查旧版 localStorage
+
   // 首次用户自动跳转到交互式新手教程
   if (!onboardingCompleted && window.location.hash !== '#/onboarding') {
     return <Navigate to="/onboarding" replace />;

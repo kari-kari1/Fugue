@@ -590,22 +590,6 @@ function StepPreferences({ tutorialMode, setTutorialMode }: { tutorialMode: bool
 
         <label className="flex items-center justify-between bg-gray-800/50 rounded-xl p-4 border border-gray-700">
           <div>
-            <p className="text-white font-medium">🌙 {t('onboarding.step7.dark_theme_label')}</p>
-            <p className="text-xs text-gray-400">{t('onboarding.step7.dark_theme_desc')}</p>
-          </div>
-          <input
-            type="checkbox"
-            defaultChecked={true}
-            onChange={(e) => {
-              document.documentElement.setAttribute('data-theme', e.target.checked ? 'dark' : 'light');
-            }}
-            className="w-5 h-5 rounded accent-blue-600"
-            aria-label={t('onboarding.step7.dark_theme_label')}
-          />
-        </label>
-
-        <label className="flex items-center justify-between bg-gray-800/50 rounded-xl p-4 border border-gray-700">
-          <div>
             <p className="text-white font-medium">🔔 {t('onboarding.step7.notifications_label')}</p>
             <p className="text-xs text-gray-400">{t('onboarding.step7.notifications_desc')}</p>
           </div>
