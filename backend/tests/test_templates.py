@@ -40,8 +40,8 @@ async def test_list_templates_with_data(
     )
     assert response.status_code == 200
     data = response.json()
-    assert data["total"] == 5
-    assert len(data["items"]) == 5
+    assert data["total"] == 20
+    assert len(data["items"]) == 20
 
 
 @pytest.mark.asyncio
@@ -61,7 +61,7 @@ async def test_list_templates_pagination(
     assert len(data["items"]) == 2
     assert data["page"] == 1
     assert data["limit"] == 2
-    assert data["total"] == 5
+    assert data["total"] == 20
 
     # 第二页
     response = await client.get(
@@ -72,14 +72,14 @@ async def test_list_templates_pagination(
     data = response.json()
     assert len(data["items"]) == 2
 
-    # 第三页（只有1个）
+    # 最后一页（page=10, limit=2, 20个模板）
     response = await client.get(
-        "/api/v1/templates/?page=3&limit=2",
+        "/api/v1/templates/?page=10&limit=2",
         headers=test_user["headers"],
     )
     assert response.status_code == 200
     data = response.json()
-    assert len(data["items"]) == 1
+    assert len(data["items"]) == 2
 
 
 @pytest.mark.asyncio

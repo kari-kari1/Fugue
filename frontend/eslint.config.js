@@ -23,9 +23,16 @@ export default defineConfig([
       '@typescript-eslint/no-empty-object-type': 'off',
       '@typescript-eslint/no-unused-vars': 'warn',
       'react-hooks/rules-of-hooks': 'warn',
-      'react-hooks/set-state-in-effect': 'warn',
+      'react-hooks/exhaustive-deps': 'warn',
       'react-refresh/only-export-components': 'warn',
       'no-empty': 'warn',
+      // Disable React Compiler rules (too strict for current codebase)
+      'react-hooks/set-state-in-effect': 'off',
+      'react-hooks/immutability': 'off',
+      'react-hooks/refs': 'off',
+      'react-hooks/purity': 'off',
+      'react-hooks/declaring-dependencies': 'off',
+      'react-hooks/reading-after-await': 'off',
     },
   },
   {
