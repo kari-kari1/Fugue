@@ -8,6 +8,18 @@
 
 [English](README.md)
 
+<p align="center">
+  <img src="docs/screenshots/login.png" alt="登录页" width="600">
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/dashboard.png" alt="仪表盘" width="800">
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/editor.png" alt="DAG 编辑器" width="800">
+</p>
+
 ---
 
 ## 特性

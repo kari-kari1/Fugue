@@ -8,6 +8,18 @@
 
 [中文文档](README_zh.md)
 
+<p align="center">
+  <img src="docs/screenshots/login.png" alt="Login" width="600">
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/dashboard.png" alt="Dashboard" width="800">
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/editor.png" alt="DAG Editor" width="800">
+</p>
+
 ---
 
 ## Features
