@@ -24,6 +24,7 @@ async def create_test_agent(db_session: AsyncSession, agent_id: str) -> None:
         crew_id=crew.id,
         name=f"Test Agent {agent_id}",
         role="tester",
+        goal="Test goal",
     )
     db_session.add(agent)
     await db_session.flush()
