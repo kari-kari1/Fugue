@@ -5,16 +5,26 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.agent import Agent
 from app.models.crew import Crew
+from app.models.user import User
 from app.services.memory_service import MemoryService
 
 
 async def create_test_agent(db_session: AsyncSession, agent_id: str) -> None:
     """创建测试用的 agent 记录（满足外键约束）"""
-    # 先创建一个 crew
+    # 先创建一个 user
+    user = User(
+        id=f"user-for-{agent_id}",
+        email=f"{agent_id}@test.com",
+        username=f"user-{agent_id}",
+        hashed_password="hashed",
+    )
+    db_session.add(user)
+
+    # 创建一个 crew
     crew = Crew(
         id=f"crew-for-{agent_id}",
         name=f"Test Crew for {agent_id}",
-        user_id="test-user-id",
+        user_id=user.id,
     )
     db_session.add(crew)
 
