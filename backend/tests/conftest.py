@@ -42,20 +42,28 @@ def event_loop():
     loop.close()
 
 
-@pytest_asyncio.fixture(scope="function")
-async def db_session() -> AsyncGenerator[AsyncSession, None]:
-    """创建测试数据库会话"""
-    # 创建表
+@pytest_asyncio.fixture(scope="session", autouse=True)
+async def setup_database():
+    """在测试会话开始时创建所有表"""
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    yield
+    # 测试结束后清理
+    async with test_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
 
+
+@pytest_asyncio.fixture(scope="function")
+async def db_session(setup_database) -> AsyncGenerator[AsyncSession, None]:
+    """创建测试数据库会话"""
     # 创建会话
     async with TestSessionLocal() as session:
         yield session
 
-    # 清理表
+    # 清理所有表的数据（使用 TRUNCATE 避免锁竞争）
     async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+        for table in reversed(Base.metadata.sorted_tables):
+            await conn.execute(table.delete())
 
 
 @pytest_asyncio.fixture(scope="function")
