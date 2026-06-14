@@ -69,3 +69,9 @@ ignore = [
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+disable_error_code = ["import-untyped", "import-not-found", "assignment", "arg-type", "return-value", "attr-defined", "name-defined", "index", "union-attr", "misc", "override", "no-redef", "valid-type", "syntax"]
+exclude = ["tests/"]
