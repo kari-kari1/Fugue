@@ -9,6 +9,9 @@ description = "Fugue - 多智能体协作工作流平台"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.12"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
 dependencies = [
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.32.0",
