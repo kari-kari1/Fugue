@@ -1,6 +1,6 @@
 """已发布工作流模型"""
 
-from sqlalchemy import Column, String, Boolean, ForeignKey, Integer
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 
 from app.models.base import BaseModel

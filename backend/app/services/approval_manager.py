@@ -7,9 +7,9 @@
 import asyncio
 import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +38,7 @@ class ApprovalStatus(str, Enum):
 
 
 # 默认工具风险等级映射
-_DEFAULT_TOOL_RISK_LEVELS: Dict[str, ToolRiskLevel] = {
+_DEFAULT_TOOL_RISK_LEVELS: dict[str, ToolRiskLevel] = {
     # 低风险 — 只读、查询类
     "file_read": ToolRiskLevel.LOW,
     "web_search": ToolRiskLevel.LOW,
@@ -67,9 +67,9 @@ class ApprovalManager:
     """
 
     def __init__(self) -> None:
-        self._requests: Dict[str, Dict[str, Any]] = {}
-        self._events: Dict[str, asyncio.Event] = {}
-        self._tool_risk_levels: Dict[str, ToolRiskLevel] = dict(
+        self._requests: dict[str, dict[str, Any]] = {}
+        self._events: dict[str, asyncio.Event] = {}
+        self._tool_risk_levels: dict[str, ToolRiskLevel] = dict(
             _DEFAULT_TOOL_RISK_LEVELS
         )
 
@@ -81,7 +81,7 @@ class ApprovalManager:
         self,
         mode: ApprovalMode,
         tool_name: str,
-        risk_level: Optional[ToolRiskLevel] = None,
+        risk_level: ToolRiskLevel | None = None,
     ) -> bool:
         """判断工具执行是否需要审批
 
@@ -108,9 +108,9 @@ class ApprovalManager:
         self,
         execution_id: str,
         tool_name: str,
-        tool_args: Dict[str, Any],
-        risk_level: Optional[ToolRiskLevel] = None,
-    ) -> Dict[str, Any]:
+        tool_args: dict[str, Any],
+        risk_level: ToolRiskLevel | None = None,
+    ) -> dict[str, Any]:
         """创建审批请求
 
         Args:
@@ -123,7 +123,7 @@ class ApprovalManager:
             审批请求字典
         """
         request_id = str(uuid.uuid4())
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         if risk_level is None:
             risk_level = self.get_tool_risk_level(tool_name)
@@ -154,8 +154,8 @@ class ApprovalManager:
     async def approve_request(
         self,
         request_id: str,
-        approved_by: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        approved_by: str | None = None,
+    ) -> dict[str, Any]:
         """批准审批请求
 
         Args:
@@ -178,7 +178,7 @@ class ApprovalManager:
                 f"Request '{request_id}' already {request['status'].value}"
             )
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         request["status"] = ApprovalStatus.APPROVED
         request["approved_by"] = approved_by
         request["approved_at"] = now
@@ -195,7 +195,7 @@ class ApprovalManager:
         self,
         request_id: str,
         reason: str = "",
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """拒绝审批请求
 
         Args:
@@ -218,7 +218,7 @@ class ApprovalManager:
                 f"Request '{request_id}' already {request['status'].value}"
             )
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         request["status"] = ApprovalStatus.REJECTED
         request["rejected_at"] = now
         request["reject_reason"] = reason
@@ -235,7 +235,7 @@ class ApprovalManager:
         self,
         request_id: str,
         timeout: float = 300,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """等待审批结果
 
         使用 asyncio.Event 实现等待/通知模式。
@@ -262,7 +262,7 @@ class ApprovalManager:
 
         try:
             await asyncio.wait_for(event.wait(), timeout=timeout)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             request["status"] = ApprovalStatus.TIMEOUT
             logger.warning(f"Approval request {request_id} timed out after {timeout}s")
 
@@ -270,8 +270,8 @@ class ApprovalManager:
 
     def get_pending_requests(
         self,
-        execution_id: Optional[str] = None,
-    ) -> List[Dict[str, Any]]:
+        execution_id: str | None = None,
+    ) -> list[dict[str, Any]]:
         """获取待审批请求列表
 
         Args:
@@ -291,7 +291,7 @@ class ApprovalManager:
 
 
 # 全局单例
-_approval_manager: Optional[ApprovalManager] = None
+_approval_manager: ApprovalManager | None = None
 
 
 def get_approval_manager() -> ApprovalManager:

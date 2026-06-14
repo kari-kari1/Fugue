@@ -5,12 +5,13 @@
 """
 
 import os
-import sys
+
 import pytest
-from app.mcp_server.server import get_mcp_server, create_mcp_server
+
+from app.engine.sandbox import SandboxConfig, SandboxType, get_sandbox_manager
+from app.mcp_server.server import create_mcp_server
+from app.services.approval_manager import ApprovalMode, get_approval_manager
 from app.services.worktree_manager import get_worktree_manager
-from app.services.approval_manager import get_approval_manager, ApprovalMode
-from app.engine.sandbox import get_sandbox_manager, SandboxConfig, SandboxType
 
 
 @pytest.mark.asyncio

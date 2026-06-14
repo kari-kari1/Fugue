@@ -2,11 +2,10 @@
 
 import asyncio
 import logging
-import sys
 import traceback
-from typing import Any, Dict, Optional
-from uuid import uuid4
 from contextlib import contextmanager
+from typing import Any
+from uuid import uuid4
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +24,7 @@ class PluginSandbox:
         self,
         timeout: int = 30,  # 秒
         max_memory_mb: int = 256,
-        allowed_modules: Optional[list] = None,
+        allowed_modules: list | None = None,
     ):
         self.timeout = timeout
         self.max_memory_mb = max_memory_mb
@@ -39,7 +38,7 @@ class PluginSandbox:
         plugin_name: str,
         tool_name: str,
         func,
-        arguments: Dict[str, Any],
+        arguments: dict[str, Any],
     ) -> str:
         """在沙箱中执行工具
 
@@ -68,7 +67,7 @@ class PluginSandbox:
             logger.info(f"Sandbox execution completed: {plugin_name}.{tool_name}")
             return result
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             error_msg = f"Tool '{tool_name}' execution timed out ({self.timeout}s)"
             logger.error(f"Sandbox timeout: {error_msg}")
             raise TimeoutError(error_msg)
@@ -78,7 +77,7 @@ class PluginSandbox:
             logger.error(f"Sandbox error: {error_msg}\n{traceback.format_exc()}")
             raise
 
-    async def _execute_safe(self, func, arguments: Dict[str, Any]) -> str:
+    async def _execute_safe(self, func, arguments: dict[str, Any]) -> str:
         """安全执行函数"""
         try:
             # B12: 在限制 import 的沙箱中执行插件函数
@@ -130,14 +129,14 @@ class SandboxPool:
     def __init__(self, max_concurrent: int = 10):
         self.max_concurrent = max_concurrent
         self._semaphore = asyncio.Semaphore(max_concurrent)
-        self._active_executions: Dict[str, asyncio.Task] = {}
+        self._active_executions: dict[str, asyncio.Task] = {}
 
     async def execute(
         self,
         plugin_name: str,
         tool_name: str,
         func,
-        arguments: Dict[str, Any],
+        arguments: dict[str, Any],
         timeout: int = 30,
     ) -> str:
         """从池中获取沙箱执行工具"""
@@ -178,7 +177,7 @@ class SandboxPool:
 
 
 # 全局沙箱池实例
-_sandbox_pool: Optional[SandboxPool] = None
+_sandbox_pool: SandboxPool | None = None
 
 
 def get_sandbox_pool() -> SandboxPool:

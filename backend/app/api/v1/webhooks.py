@@ -1,12 +1,12 @@
 """Webhook管理API"""
 
 import logging
-from typing import List, Optional
-from fastapi import APIRouter, HTTPException, Depends
-from pydantic import BaseModel, Field, HttpUrl
+
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field
 
 from app.api.deps import CurrentUser
-from app.services.webhook_service import get_webhook_service, WebhookEventType
+from app.services.webhook_service import WebhookEventType, get_webhook_service
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -18,25 +18,25 @@ router = APIRouter()
 class WebhookCreate(BaseModel):
     """创建Webhook请求"""
     url: str = Field(..., description="回调URL")
-    events: List[str] = Field(..., min_length=1, description="订阅的事件列表")
-    secret: Optional[str] = Field(None, description="签名密钥（可选）")
+    events: list[str] = Field(..., min_length=1, description="订阅的事件列表")
+    secret: str | None = Field(None, description="签名密钥（可选）")
 
 
 class WebhookResponse(BaseModel):
     """Webhook响应"""
     id: str
     url: str
-    events: List[str]
+    events: list[str]
     is_active: bool
     created_at: str
-    last_triggered_at: Optional[str]
+    last_triggered_at: str | None
     failure_count: int
 
 
 # ─── API端点 ───
 
 
-@router.get("/", response_model=List[WebhookResponse])
+@router.get("/", response_model=list[WebhookResponse])
 async def list_webhooks(
     current_user: CurrentUser,
 ):

@@ -1,17 +1,17 @@
 """模板种子服务 - 预置 5 个内置工作流模板"""
 
-from typing import List, Dict, Any
+from typing import Any
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.template import Template
 
-
 # ---------------------------------------------------------------------------
 # 预置模板数据
 # ---------------------------------------------------------------------------
 
-PREDEFINED_TEMPLATES: List[Dict[str, Any]] = [
+PREDEFINED_TEMPLATES: list[dict[str, Any]] = [
     # ------------------------------------------------------------------
     # 1. 行业研究报告生成
     # ------------------------------------------------------------------
@@ -592,7 +592,7 @@ PREDEFINED_TEMPLATES: List[Dict[str, Any]] = [
 # ---------------------------------------------------------------------------
 
 
-async def seed_templates(db: AsyncSession) -> Dict[str, Any]:
+async def seed_templates(db: AsyncSession) -> dict[str, Any]:
     """
     向数据库写入预置模板。
 
@@ -600,8 +600,8 @@ async def seed_templates(db: AsyncSession) -> Dict[str, Any]:
     - 返回本次操作的统计信息。
     """
 
-    created: List[str] = []
-    skipped: List[str] = []
+    created: list[str] = []
+    skipped: list[str] = []
 
     for tpl in PREDEFINED_TEMPLATES:
         # 检查是否已存在同名内置模板

@@ -2,16 +2,23 @@
 
 import asyncio
 import logging
-from typing import List, Optional
-from fastapi import APIRouter, HTTPException, status, Query
+from datetime import UTC
+
+from fastapi import APIRouter, HTTPException, Query, status
 from sqlalchemy import select
 
-from app.api.deps import DatabaseSession, CurrentUser
-from app.core.database import db_session_manager
-from app.models.execution import Execution, ExecutionStatus, TriggerType, TaskExecution
-from app.models.crew import Crew
-from app.schemas.execution import ExecutionCreate, ExecutionResponse, TaskExecutionResponse, HeadlessExecutionRequest, HeadlessExecutionResponse
+from app.api.deps import CurrentUser, DatabaseSession
 from app.core.config import settings
+from app.core.database import db_session_manager
+from app.models.crew import Crew
+from app.models.execution import Execution, ExecutionStatus, TaskExecution, TriggerType
+from app.schemas.execution import (
+    ExecutionCreate,
+    ExecutionResponse,
+    HeadlessExecutionRequest,
+    HeadlessExecutionResponse,
+    TaskExecutionResponse,
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -63,11 +70,11 @@ def _execution_to_response(exec: Execution) -> ExecutionResponse:
     )
 
 
-@router.get("/", response_model=List[ExecutionResponse])
+@router.get("/", response_model=list[ExecutionResponse])
 async def list_executions(
     db: DatabaseSession,
     current_user: CurrentUser,
-    crew_id: Optional[str] = Query(None),
+    crew_id: str | None = Query(None),
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
 ):
@@ -97,7 +104,7 @@ async def create_execution(
         raise HTTPException(status_code=404, detail="工作流不存在")
 
     # 检查是否有正在运行的执行（超过10分钟的视为超时，自动标记为FAILED）
-    from datetime import datetime, timedelta, timezone
+    from datetime import datetime, timedelta
     running = await db.execute(
         select(Execution).where(
             Execution.crew_id == execution_data.crew_id,
@@ -109,11 +116,11 @@ async def create_execution(
         # 如果运行超过10分钟，视为超时，标记为FAILED后放行
         started = running_exec.started_at or running_exec.created_at
         if started:
-            age = datetime.now(timezone.utc) - (started if started.tzinfo else started.replace(tzinfo=timezone.utc))
+            age = datetime.now(UTC) - (started if started.tzinfo else started.replace(tzinfo=UTC))
             if age > timedelta(minutes=10):
                 logger.warning(f"Execution {running_exec.id} stuck in RUNNING for {age}, marking as FAILED")
                 running_exec.status = ExecutionStatus.FAILED
-                running_exec.error_log = f"执行超时（超过10分钟），自动标记为失败"
+                running_exec.error_log = "执行超时（超过10分钟），自动标记为失败"
                 await db.flush()
                 running_exec = None
         if running_exec:
@@ -150,8 +157,8 @@ async def create_execution(
         # 开发环境：使用asyncio直接执行（向后兼容）
         import asyncio
         async def _run_execution_background():
-            from app.engine.executor import start_execution
             from app.core.database import db_session_manager
+            from app.engine.executor import start_execution
             try:
                 await start_execution(exec_id, execution_data.llm_api_keys or {}, execution_data.llm_base_urls or {})
             except Exception as e:
@@ -203,18 +210,18 @@ async def get_execution(
 
     # 安全网：PENDING 超过 2 分钟自动标记 FAILED
     if execution.status == ExecutionStatus.PENDING:
-        from datetime import datetime, timedelta, timezone
-        if execution.created_at and datetime.now(timezone.utc) - execution.created_at.replace(tzinfo=timezone.utc) > timedelta(minutes=2):
+        from datetime import datetime, timedelta
+        if execution.created_at and datetime.now(UTC) - execution.created_at.replace(tzinfo=UTC) > timedelta(minutes=2):
             execution.status = ExecutionStatus.FAILED
             execution.error_log = "执行超时：后台任务未能在2分钟内启动"
-            execution.completed_at = datetime.now(timezone.utc)
+            execution.completed_at = datetime.now(UTC)
             await db.commit()
             logger.warning(f"Auto-failed execution {execution_id}: stuck in PENDING for >2 minutes")
 
     return _execution_to_response(execution)
 
 
-@router.get("/{execution_id}/task-executions", response_model=List[TaskExecutionResponse])
+@router.get("/{execution_id}/task-executions", response_model=list[TaskExecutionResponse])
 async def list_task_executions(
     execution_id: str,
     db: DatabaseSession,
@@ -232,8 +239,7 @@ async def list_task_executions(
         raise HTTPException(status_code=404, detail="执行记录不存在")
 
     from sqlalchemy.orm import selectinload
-    from app.models.task import Task
-    from app.models.agent import Agent
+
 
     result = await db.execute(
         select(TaskExecution)
@@ -328,9 +334,11 @@ async def cancel_execution_endpoint(
         logger.warning(f"[API] Engine not found in memory for {execution_id}, status set to CANCELLED anyway")
 
     # 直接更新 RUNNING/PENDING 的 TaskExecution 记录，避免前端显示过期状态
-    from sqlalchemy import update as sa_update
-    from app.models.execution import TaskExecution, TaskExecutionStatus
     from datetime import datetime
+
+    from sqlalchemy import update as sa_update
+
+    from app.models.execution import TaskExecution, TaskExecutionStatus
     await db.execute(
         sa_update(TaskExecution)
         .where(
@@ -572,7 +580,6 @@ async def run_headless(
     适用于 CI/CD 集成、API 调用等非交互式场景。
     支持 JSON 和 stream-json 两种输出格式。
     """
-    from datetime import datetime, timezone
     from app.engine.executor import start_execution
 
     # 验证工作流归属
@@ -642,8 +649,9 @@ async def run_headless(
 
     # output_format 支持
     if execution_data.output_format == "stream-json":
-        from fastapi.responses import StreamingResponse
         import json as _json
+
+        from fastapi.responses import StreamingResponse
         async def ndjson_stream():
             for event in (execution.trace or []):
                 yield _json.dumps(event, ensure_ascii=False) + "\n"
@@ -660,8 +668,9 @@ async def stream_execution(
     current_user: CurrentUser,
 ):
     """SSE 流式输出执行进度 — 实时推送执行状态和工具调用"""
-    from fastapi.responses import StreamingResponse
     import asyncio as aio
+
+    from fastapi.responses import StreamingResponse
 
     # 验证执行记录归属
     result = await db.execute(

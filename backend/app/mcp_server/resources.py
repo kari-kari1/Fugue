@@ -20,6 +20,7 @@ def register_resources(server: FastMCP) -> None:
         Returns a JSON array of workflow summaries.
         """
         from sqlalchemy import select
+
         from app.core.database import db_session_manager
         from app.models.crew import Crew
 
@@ -48,6 +49,7 @@ def register_resources(server: FastMCP) -> None:
         """
         from sqlalchemy import select
         from sqlalchemy.orm import selectinload
+
         from app.core.database import db_session_manager
         from app.models.crew import Crew
 

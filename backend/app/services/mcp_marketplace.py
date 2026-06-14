@@ -1,7 +1,7 @@
 """MCP工具市场服务 — 提供预置MCP Server配置和一键安装功能"""
 
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -140,9 +140,9 @@ class MCPMarketplaceService:
 
     def list_presets(
         self,
-        category: Optional[str] = None,
-        search: Optional[str] = None,
-    ) -> List[Dict[str, Any]]:
+        category: str | None = None,
+        search: str | None = None,
+    ) -> list[dict[str, Any]]:
         """列出预置的MCP Server配置
 
         Args:
@@ -167,11 +167,11 @@ class MCPMarketplaceService:
 
         return results
 
-    def get_preset(self, preset_id: str) -> Optional[Dict[str, Any]]:
+    def get_preset(self, preset_id: str) -> dict[str, Any] | None:
         """获取预置配置"""
         return self._presets.get(preset_id)
 
-    def get_categories(self) -> List[Dict[str, Any]]:
+    def get_categories(self) -> list[dict[str, Any]]:
         """获取所有分类"""
         categories = {}
         for server in PRESET_MCP_SERVERS:
@@ -200,7 +200,7 @@ class MCPMarketplaceService:
         }
         return names.get(category, category)
 
-    def generate_install_command(self, preset_id: str) -> Optional[Dict[str, Any]]:
+    def generate_install_command(self, preset_id: str) -> dict[str, Any] | None:
         """生成安装命令
 
         Args:
@@ -226,9 +226,9 @@ class MCPMarketplaceService:
     def validate_config(
         self,
         command: str,
-        args: List[str],
-        env: Dict[str, str],
-    ) -> Dict[str, Any]:
+        args: list[str],
+        env: dict[str, str],
+    ) -> dict[str, Any]:
         """验证MCP Server配置
 
         Returns:
@@ -251,7 +251,7 @@ class MCPMarketplaceService:
 
 
 # 全局单例
-_mcp_marketplace: Optional[MCPMarketplaceService] = None
+_mcp_marketplace: MCPMarketplaceService | None = None
 
 
 def get_mcp_marketplace() -> MCPMarketplaceService:

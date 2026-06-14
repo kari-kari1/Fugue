@@ -1,10 +1,9 @@
 """MCP Server 工厂 — 创建和管理 FastMCP 实例"""
 
-from typing import Optional
 
 from mcp.server.fastmcp import FastMCP
 
-_server_instance: Optional[FastMCP] = None
+_server_instance: FastMCP | None = None
 
 
 def create_mcp_server() -> FastMCP:
@@ -17,9 +16,9 @@ def create_mcp_server() -> FastMCP:
         instructions="Multi-agent workflow platform - execute workflows, query status, and browse templates.",
     )
 
-    from .tools import register_tools
-    from .resources import register_resources
     from .prompts import register_prompts
+    from .resources import register_resources
+    from .tools import register_tools
 
     register_tools(server)
     register_resources(server)

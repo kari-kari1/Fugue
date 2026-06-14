@@ -1,6 +1,6 @@
 """MCP Server HTTP 端点 Pydantic Schema"""
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -10,7 +10,7 @@ class MCPToolInfo(BaseModel):
 
     name: str
     description: str
-    input_schema: Dict[str, Any]
+    input_schema: dict[str, Any]
 
 
 class MCPResourceInfo(BaseModel):
@@ -18,16 +18,16 @@ class MCPResourceInfo(BaseModel):
 
     uri: str
     name: str
-    description: Optional[str] = None
-    mime_type: Optional[str] = None
+    description: str | None = None
+    mime_type: str | None = None
 
 
 class MCPPromptInfo(BaseModel):
     """MCP 提示词信息"""
 
     name: str
-    description: Optional[str] = None
-    arguments: Optional[List[Dict[str, Any]]] = None
+    description: str | None = None
+    arguments: list[dict[str, Any]] | None = None
 
 
 class MCPServerStatus(BaseModel):

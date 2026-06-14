@@ -8,7 +8,6 @@
 import base64
 import hashlib
 import logging
-from typing import Optional
 
 from cryptography.fernet import Fernet
 
@@ -16,7 +15,7 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-_fernet: Optional[Fernet] = None
+_fernet: Fernet | None = None
 
 
 def _get_fernet() -> Fernet:

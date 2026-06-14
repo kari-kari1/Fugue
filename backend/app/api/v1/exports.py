@@ -3,7 +3,7 @@
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse, PlainTextResponse
 
-from app.api.deps import DatabaseSession, CurrentUser
+from app.api.deps import CurrentUser, DatabaseSession
 from app.services.export_service import ExportService
 
 router = APIRouter()

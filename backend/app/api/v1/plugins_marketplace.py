@@ -2,16 +2,15 @@
 
 import logging
 import re
-from typing import Optional, List
+
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field, field_validator
-from sqlalchemy import select, func, or_
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import DatabaseSession, CurrentUser
-from app.models.plugin import PluginMarketplace
+from app.api.deps import CurrentUser, DatabaseSession
+from app.models.plugin import PluginConfig, PluginMarketplace
 from app.models.plugin_review import PluginReview
-from app.models.plugin import PluginConfig
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -20,7 +19,7 @@ router = APIRouter()
 _ALLOWED_INSTALL_PREFIXES = ("pip install", "pip3 install", "npm install", "yarn add", "pnpm add")
 
 
-def _validate_install_command(v: Optional[str]) -> Optional[str]:
+def _validate_install_command(v: str | None) -> str | None:
     """B8: 验证 install_command 仅允许安全的包管理器命令"""
     if v is None or v.strip() == "":
         return None
@@ -44,49 +43,49 @@ class PluginPublishRequest(BaseModel):
     plugin_name: str = Field(..., min_length=1, max_length=100)
     display_name: str = Field(..., min_length=1, max_length=200)
     description: str = Field(..., min_length=1)
-    long_description: Optional[str] = None
+    long_description: str | None = None
     current_version: str = Field(..., min_length=1, max_length=20)
-    min_fugue_version: Optional[str] = None
+    min_fugue_version: str | None = None
     author: str = Field(..., min_length=1, max_length=100)
-    author_email: Optional[str] = None
-    homepage: Optional[str] = None
-    repository: Optional[str] = None
+    author_email: str | None = None
+    homepage: str | None = None
+    repository: str | None = None
     category: str = Field(default="general", max_length=50)
-    tags: List[str] = Field(default_factory=list)
-    install_command: Optional[str] = None
-    dependencies: List[str] = Field(default_factory=list)
+    tags: list[str] = Field(default_factory=list)
+    install_command: str | None = None
+    dependencies: list[str] = Field(default_factory=list)
     python_requires: str = Field(default=">=3.10")
-    tools_list: List[str] = Field(default_factory=list)
-    permissions_required: List[str] = Field(default_factory=list)
+    tools_list: list[str] = Field(default_factory=list)
+    permissions_required: list[str] = Field(default_factory=list)
 
     @field_validator("install_command")
     @classmethod
-    def validate_install_command(cls, v: Optional[str]) -> Optional[str]:
+    def validate_install_command(cls, v: str | None) -> str | None:
         return _validate_install_command(v)
 
 
 class PluginUpdateRequest(BaseModel):
     """更新插件请求"""
-    display_name: Optional[str] = Field(None, max_length=200)
-    description: Optional[str] = None
-    long_description: Optional[str] = None
-    current_version: Optional[str] = Field(None, max_length=20)
-    min_fugue_version: Optional[str] = None
-    author: Optional[str] = Field(None, max_length=100)
-    author_email: Optional[str] = None
-    homepage: Optional[str] = None
-    repository: Optional[str] = None
-    category: Optional[str] = Field(None, max_length=50)
-    tags: Optional[List[str]] = None
-    install_command: Optional[str] = None
-    dependencies: Optional[List[str]] = None
-    python_requires: Optional[str] = None
-    tools_list: Optional[List[str]] = None
-    permissions_required: Optional[List[str]] = None
+    display_name: str | None = Field(None, max_length=200)
+    description: str | None = None
+    long_description: str | None = None
+    current_version: str | None = Field(None, max_length=20)
+    min_fugue_version: str | None = None
+    author: str | None = Field(None, max_length=100)
+    author_email: str | None = None
+    homepage: str | None = None
+    repository: str | None = None
+    category: str | None = Field(None, max_length=50)
+    tags: list[str] | None = None
+    install_command: str | None = None
+    dependencies: list[str] | None = None
+    python_requires: str | None = None
+    tools_list: list[str] | None = None
+    permissions_required: list[str] | None = None
 
     @field_validator("install_command")
     @classmethod
-    def validate_install_command(cls, v: Optional[str]) -> Optional[str]:
+    def validate_install_command(cls, v: str | None) -> str | None:
         return _validate_install_command(v)
 
 
@@ -98,7 +97,7 @@ class PluginRateRequest(BaseModel):
 class PluginReviewRequest(BaseModel):
     """添加评论请求"""
     rating: int = Field(..., ge=1, le=5)
-    comment: Optional[str] = None
+    comment: str | None = None
 
 
 # ─── 工具函数 ───
@@ -169,8 +168,8 @@ async def publish_plugin(
 @router.get("/list")
 async def list_plugins(
     db: DatabaseSession,
-    category: Optional[str] = Query(None, description="分类过滤"),
-    search: Optional[str] = Query(None, description="搜索关键词"),
+    category: str | None = Query(None, description="分类过滤"),
+    search: str | None = Query(None, description="搜索关键词"),
     page: int = Query(1, ge=1, description="页码"),
     page_size: int = Query(20, ge=1, le=100, description="每页数量"),
 ):

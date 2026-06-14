@@ -19,6 +19,7 @@ def find_available_port(start: int = 8000, max_tries: int = 10) -> int:
 
 if __name__ == "__main__":
     import uvicorn
+
     # 直接导入 app 对象 — PyInstaller 打包后字符串引用 "app.main:app" 无法解析
     from app.main import app
 

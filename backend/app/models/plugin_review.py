@@ -1,6 +1,7 @@
 """Plugin评论数据库模型"""
 
-from sqlalchemy import Column, String, Integer, Text, ForeignKey
+from sqlalchemy import Column, ForeignKey, Integer, String, Text
+
 from app.models.base import BaseModel
 
 

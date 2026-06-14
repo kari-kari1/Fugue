@@ -1,16 +1,15 @@
 """工作流（Crew）相关API"""
 
-from typing import List, Optional
-from fastapi import APIRouter, HTTPException, status, Query
-from sqlalchemy import select, func
+
+from fastapi import APIRouter, HTTPException, Query, status
+from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from app.api.deps import DatabaseSession, CurrentUser
-from app.models.crew import Crew
+from app.api.deps import CurrentUser, DatabaseSession
 from app.models.agent import Agent
-from app.models.task import Task
-from app.schemas.crew import CrewCreate, CrewUpdate, CrewResponse, CrewDetailResponse
+from app.models.crew import Crew
 from app.schemas.agent import AgentResponse
+from app.schemas.crew import CrewCreate, CrewDetailResponse, CrewResponse, CrewUpdate
 from app.schemas.task import TaskResponse
 
 router = APIRouter()
@@ -37,13 +36,13 @@ def _crew_to_response(crew: Crew) -> CrewResponse:
     )
 
 
-@router.get("/", response_model=List[CrewResponse])
+@router.get("/", response_model=list[CrewResponse])
 async def list_crews(
     db: DatabaseSession,
     current_user: CurrentUser,
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
-    is_template: Optional[str] = None,
+    is_template: str | None = None,
 ):
     """获取工作流列表"""
     query = select(Crew).where(Crew.user_id == current_user.id)
@@ -244,7 +243,6 @@ async def get_agent_experience(
     current_user: CurrentUser,
 ):
     """获取Agent经验记忆"""
-    from app.models.agent import Agent
     result = await db.execute(
         select(Agent).where(Agent.id == agent_id, Agent.crew_id == crew_id)
     )
@@ -267,7 +265,6 @@ async def update_agent_experience(
     current_user: CurrentUser,
 ):
     """更新Agent经验记忆"""
-    from app.models.agent import Agent
     result = await db.execute(
         select(Agent).where(Agent.id == agent_id, Agent.crew_id == crew_id)
     )

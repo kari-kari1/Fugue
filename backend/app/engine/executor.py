@@ -11,29 +11,30 @@ import uuid
 from collections import defaultdict
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, Any, List, Optional, Set
+from typing import Any
 
-from simpleeval import simple_eval, InvalidExpression
-
+from simpleeval import InvalidExpression, simple_eval
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy.orm.attributes import flag_modified
 
 from app.core.database import db_session_manager
-from app.models.crew import Crew, ProcessType
+from app.engine.checkpoint_manager import CheckpointManager
+from app.engine.llm_provider import LLMResponse, ToolCall, get_llm_provider
+from app.engine.tools import execute_tool, get_anthropic_tools, get_openai_tools, get_plugin_tool_schemas
 from app.models.agent import Agent
-from app.models.task import Task
 from app.models.condition import ConditionBranch
-from app.models.loop import LoopConfig
+from app.models.crew import Crew, ProcessType
 from app.models.execution import (
-    Execution, ExecutionStatus,
-    TaskExecution, TaskExecutionStatus,
+    Execution,
+    ExecutionStatus,
+    TaskExecution,
+    TaskExecutionStatus,
 )
 from app.models.human_review import HumanReviewConfig, HumanReviewRequest
-from app.engine.llm_provider import get_llm_provider, LLMResponse, ToolCall
-from app.engine.tools import get_openai_tools, get_anthropic_tools, execute_tool, get_plugin_tool_schemas
-from app.engine.checkpoint_manager import CheckpointManager
+from app.models.loop import LoopConfig
+from app.models.task import Task
 from app.services.event_publisher import event_publisher
 
 logger = logging.getLogger(__name__)
@@ -48,7 +49,7 @@ def get_db_session():
 class ExecutionEngine:
     """执行引擎"""
 
-    def __init__(self, execution_id: str, llm_api_keys: Dict[str, str] = None, llm_base_urls: Dict[str, str] = None, max_turns: int = 10):
+    def __init__(self, execution_id: str, llm_api_keys: dict[str, str] = None, llm_base_urls: dict[str, str] = None, max_turns: int = 10):
         self.execution_id = execution_id
         self.llm_api_keys = llm_api_keys or {}
         self.llm_base_urls = llm_base_urls or {}
@@ -68,7 +69,7 @@ class ExecutionEngine:
         review_config: 'HumanReviewConfig',
         execution_id: str,
         task_id: str,
-        context: Dict[str, Any],
+        context: dict[str, Any],
     ) -> Any:
         """等待人工审核完成
 
@@ -286,7 +287,7 @@ class ExecutionEngine:
                 f"status={review_request.status}, reviewer={user_id}"
             )
 
-    def _format_prompt(self, template: str, context: Dict[str, Any]) -> str:
+    def _format_prompt(self, template: str, context: dict[str, Any]) -> str:
         """格式化审核提示模板
 
         支持 {variable} 占位符，从 context 中取值。
@@ -311,7 +312,7 @@ class ExecutionEngine:
                 self._run_inner(resume),
                 timeout=1800,  # 30 分钟
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.error(f"[EXECUTOR] Execution {execution_id} timed out after 30 minutes")
             # 清理 worktree 和 workspace（超时路径）
             if getattr(self, '_worktree_path', None):
@@ -379,8 +380,8 @@ class ExecutionEngine:
                 checkpoint_manager = CheckpointManager(db, execution_id)
 
                 # 恢复状态（如果 resume=True）
-                resumed_outputs: Dict[str, str] = {}
-                resumed_completed_ids: List[str] = []
+                resumed_outputs: dict[str, str] = {}
+                resumed_completed_ids: list[str] = []
                 resumed_total_tokens = 0
                 resumed_total_cost = 0.0
 
@@ -397,7 +398,7 @@ class ExecutionEngine:
                         )
                     else:
                         logger.warning(
-                            f"[EXECUTOR] resume=True but no checkpoint found, starting fresh"
+                            "[EXECUTOR] resume=True but no checkpoint found, starting fresh"
                         )
                         resume = False
 
@@ -425,8 +426,9 @@ class ExecutionEngine:
                 # Git Worktree 隔离执行
                 if crew.workspace_dir:
                     try:
-                        from app.services.worktree_manager import get_worktree_manager
                         import os as _os
+
+                        from app.services.worktree_manager import get_worktree_manager
                         wt_mgr = get_worktree_manager()
                         # 检测是否为 git 仓库，非 git 时跳过 worktree 创建
                         repo_path = crew.workspace_dir
@@ -491,7 +493,7 @@ class ExecutionEngine:
                     )
 
                 # 创建或恢复TaskExecution记录（需在循环执行之前）
-                task_exec_map: Dict[str, TaskExecution] = {}
+                task_exec_map: dict[str, TaskExecution] = {}
                 if resume:
                     # 恢复：查询已有的 TaskExecution 记录
                     existing_te_result = await db.execute(
@@ -532,16 +534,16 @@ class ExecutionEngine:
                     await db.commit()
 
                 # 初始化或恢复执行状态
-                task_outputs: Dict[str, str] = dict(resumed_outputs) if resume else {}
+                task_outputs: dict[str, str] = dict(resumed_outputs) if resume else {}
                 total_tokens = resumed_total_tokens if resume else 0
                 total_cost = resumed_total_cost if resume else 0.0
                 total_tasks = len(tasks_with_agent)
                 completed_count = len(resumed_completed_ids) if resume else 0
-                completed_task_ids: Set[str] = set(resumed_completed_ids) if resume else set()
+                completed_task_ids: set[str] = set(resumed_completed_ids) if resume else set()
 
                 # 循环执行：如有循环配置，先执行循环体任务
-                loop_task_ids: Set[str] = set()
-                loop_outputs: Dict[str, Any] = {}
+                loop_task_ids: set[str] = set()
+                loop_outputs: dict[str, Any] = {}
                 if crew.loop_configs:
                     loop_configs = list(crew.loop_configs)
                     for lc in loop_configs:
@@ -931,7 +933,8 @@ class ExecutionEngine:
                 # 将 worktree 中的输出文件递归复制回用户工作空间（防止丢失）
                 if getattr(self, '_worktree_path', None) and getattr(crew, 'workspace_dir', None):
                     try:
-                        import shutil, os as _os
+                        import os as _os
+                        import shutil
                         wt_path = self._worktree_path
                         user_ws = _os.path.expanduser(crew.workspace_dir)
                         if _os.path.isdir(wt_path) and wt_path != user_ws:
@@ -970,7 +973,8 @@ class ExecutionEngine:
             # 异常路径也复制输出文件
             if getattr(self, '_worktree_path', None) and getattr(crew, 'workspace_dir', None):
                 try:
-                    import shutil, os as _os
+                    import os as _os
+                    import shutil
                     copied = 0
                     for root, dirs, files in _os.walk(self._worktree_path):
                         for fname in files:
@@ -1028,15 +1032,16 @@ class ExecutionEngine:
                 logger.debug(f"Workspace cleanup in finally failed (non-critical): {e}")
             if getattr(self, '_worktree_path', None):
                 try:
-                    from app.services.worktree_manager import get_worktree_manager
                     import asyncio as _aio
+
+                    from app.services.worktree_manager import get_worktree_manager
                     # 使用 create_task 并等待最多3秒完成清理
                     cleanup_task = _aio.create_task(
                         get_worktree_manager().remove_worktree(self._worktree_path)
                     )
                     try:
                         await _aio.wait_for(cleanup_task, timeout=3.0)
-                    except _aio.TimeoutError:
+                    except TimeoutError:
                         cleanup_task.cancel()
                 except Exception as e:
                     logger.debug(f"Worktree cleanup in finally failed (non-critical): {e}")
@@ -1146,9 +1151,9 @@ class ExecutionEngine:
 
     async def _execute_task(
         self, db: AsyncSession, execution: Execution,
-        task: Task, agents_map: Dict[str, Agent],
-        task_outputs: Dict[str, str],
-        task_exec_map: Dict[str, TaskExecution],
+        task: Task, agents_map: dict[str, Agent],
+        task_outputs: dict[str, str],
+        task_exec_map: dict[str, TaskExecution],
         te_override: TaskExecution = None,
     ):
         """执行单个任务，返回 (success: bool, tokens_used: int, cost_usd: float)"""
@@ -1211,7 +1216,7 @@ class ExecutionEngine:
                         self._build_memory_context(db, agent, task, execution),
                         timeout=15,  # 最多等15秒，超时跳过
                     )
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     logger.warning(f"[EXECUTOR] Memory context build timed out (15s), skipping for task {task.name}")
                 except Exception as mem_err:
                     logger.warning(f"[EXECUTOR] Memory context build failed: {mem_err}")
@@ -1346,7 +1351,7 @@ class ExecutionEngine:
                             elif etype == "done":
                                 llm_response = event.data
 
-                    except asyncio.TimeoutError:
+                    except TimeoutError:
                         logger.warning(f"[EXECUTOR] LLM streaming timeout ({timeout}s)")
                         raise
                     except Exception as stream_err:
@@ -1445,7 +1450,7 @@ class ExecutionEngine:
                         _crew = await db.get(Crew, execution.crew_id)
                         crew_approval_mode = getattr(_crew, 'approval_mode', 'semi_auto') or 'semi_auto'
                         if crew_approval_mode != 'full_auto':
-                            from app.services.approval_manager import get_approval_manager, ApprovalMode
+                            from app.services.approval_manager import ApprovalMode, get_approval_manager
                             approval_mgr = get_approval_manager()
                             mode = ApprovalMode(crew_approval_mode)
                             if approval_mgr.requires_approval(mode=mode, tool_name=tc.name):
@@ -1518,7 +1523,7 @@ class ExecutionEngine:
                         # 沙箱包装：对高危工具（code_execute, shell_execute）使用沙箱执行
                         SANDBOX_WRAPPED_TOOLS = {"code_execute", "shell_execute"}
                         if tc.name in SANDBOX_WRAPPED_TOOLS:
-                            from app.engine.sandbox import get_sandbox_manager, SandboxConfig
+                            from app.engine.sandbox import SandboxConfig, get_sandbox_manager
                             _sb_mgr = get_sandbox_manager()
                             _sb_config = SandboxConfig(
                                 enable_filesystem_isolation=True,
@@ -1599,7 +1604,7 @@ class ExecutionEngine:
                         messages.append({"role": "user", "content": tool_result_blocks})
                     else:
                         # OpenAI 格式
-                        assistant_msg: Dict[str, Any] = {"role": "assistant", "content": llm_response.content or ""}
+                        assistant_msg: dict[str, Any] = {"role": "assistant", "content": llm_response.content or ""}
                         assistant_msg["tool_calls"] = [
                             {"id": tc.id, "type": "function", "function": {"name": tc.name, "arguments": json.dumps(tc.arguments, ensure_ascii=False)}}
                             for tc in llm_response.tool_calls
@@ -1660,7 +1665,7 @@ class ExecutionEngine:
                             tn = tc_entry.get("tool_name", "?")
                             to = str(tc_entry.get("output", ""))[:300]
                             tool_summary.append(f"[{tn}] {to}")
-                        final_content = f"[工具调用已达上限，以下为最近的工具结果]\n\n" + "\n\n".join(tool_summary) if tool_summary else "(工具调用轮次超限，未获得有效结果)"
+                        final_content = "[工具调用已达上限，以下为最近的工具结果]\n\n" + "\n\n".join(tool_summary) if tool_summary else "(工具调用轮次超限，未获得有效结果)"
 
                 # 成功
                 te.status = TaskExecutionStatus.COMPLETED
@@ -1710,8 +1715,9 @@ class ExecutionEngine:
                 # P1-1: 任务完成后自动索引输出到知识库
                 if getattr(self, '_memory_config', None) and getattr(self._memory_config, 'auto_index_on_complete', True):
                     try:
-                        from app.services.vector_store import get_vector_store
                         import uuid as _uuid
+
+                        from app.services.vector_store import get_vector_store
                         vs = get_vector_store()
                         if vs and final_content:
                             # 查找 agent 关联的知识库
@@ -1749,7 +1755,7 @@ class ExecutionEngine:
 
                 return True, local_total_tokens, local_total_cost
 
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 te.retry_count = attempt + 1
                 if attempt < max_retries - 1:
                     te.status = TaskExecutionStatus.RETRYING
@@ -1814,8 +1820,9 @@ class ExecutionEngine:
 
         创建子 Execution 并递归执行，将结果合并为当前任务的输出。
         """
-        from app.models.crew import Crew
         from sqlalchemy.orm import selectinload
+
+        from app.models.crew import Crew
 
         self._add_trace(execution, "sub_crew.started", task_name=task.name, data={
             "sub_crew_id": task.sub_crew_id,
@@ -1971,7 +1978,7 @@ class ExecutionEngine:
         return f"正在调用工具 {tool_name}..."
 
     @staticmethod
-    def _parse_text_tool_calls(content: str) -> List['ToolCall']:
+    def _parse_text_tool_calls(content: str) -> list['ToolCall']:
         """从 LLM 文本响应中解析 ````tool_call``` 代码块。
 
         用于不支持 function calling 的模型：模型在回复中嵌入
@@ -2081,7 +2088,7 @@ class ExecutionEngine:
                 created.append('AGENTS.md')
                 logger.info(f"[MEMORY] AGENTS.md created at {am}")
             else:
-                logger.info(f"[MEMORY] AGENTS.md already exists, preserving user edits")
+                logger.info("[MEMORY] AGENTS.md already exists, preserving user edits")
 
             logger.info(f"[MEMORY] {len(created)} files written to {af_dir}")
             return {"status": "ok", "path": af_dir, "files": created}
@@ -2096,8 +2103,8 @@ class ExecutionEngine:
         total_tokens, total_cost, completed_count, total_tasks,
     ):
         """Event Flow 模式执行 — 加载 FlowConfig，构建事件驱动流程并运行"""
-        from app.models.flow_config import FlowConfig
         from app.engine.flow_executor import clear_flows, emit
+        from app.models.flow_config import FlowConfig
 
         self._add_trace(execution, "crew.event_flow_start", data={"crew_id": crew.id})
 
@@ -2388,7 +2395,8 @@ class ExecutionEngine:
 
         格式: ```agent_command {"command": "goto", "target_agent": "..."}```
         """
-        import re, json
+        import json
+        import re
         pattern = r'```agent_command\s*\n?(.*?)```'
         matches = re.findall(pattern, text, re.DOTALL)
         if not matches:
@@ -2451,8 +2459,8 @@ class ExecutionEngine:
 
     def _topological_levels(self, tasks, task_map):
         """将任务按拓扑层级分组（同层任务可并行执行）"""
-        in_degree: Dict[str, int] = defaultdict(int)
-        dependents: Dict[str, List[str]] = defaultdict(list)
+        in_degree: dict[str, int] = defaultdict(int)
+        dependents: dict[str, list[str]] = defaultdict(list)
 
         for task in tasks:
             deps = [d for d in (task.context_task_ids or []) if d in task_map]
@@ -2492,18 +2500,18 @@ class ExecutionEngine:
     async def _execute_condition(
         self,
         condition: ConditionBranch,
-        context: Dict[str, Any],
-    ) -> List[str]:
+        context: dict[str, Any],
+    ) -> list[str]:
         """执行条件分支（委托给 conditions 模块）"""
         from app.engine.conditions import evaluate_condition
         return evaluate_condition(condition, context)
 
     async def execute_with_conditions(
         self,
-        tasks: List[Task],
-        conditions: List[ConditionBranch],
-        context: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        tasks: list[Task],
+        conditions: list[ConditionBranch],
+        context: dict[str, Any],
+    ) -> dict[str, Any]:
         """执行支持条件分支的工作流
 
         Args:
@@ -2518,7 +2526,7 @@ class ExecutionEngine:
         condition_map = {c.id: c for c in conditions}
 
         # 构建执行图：根据条件分支决定要执行的任务
-        executable_task_ids: Set[str] = set()
+        executable_task_ids: set[str] = set()
 
         for condition in conditions:
             branch_task_ids = await self._execute_condition(condition, context)
@@ -2527,7 +2535,7 @@ class ExecutionEngine:
                     executable_task_ids.add(tid)
 
         # 无条件关联的任务默认执行
-        conditioned_task_ids: Set[str] = set()
+        conditioned_task_ids: set[str] = set()
         for condition in conditions:
             conditioned_task_ids.update(condition.true_branch_task_ids or [])
             conditioned_task_ids.update(condition.false_branch_task_ids or [])
@@ -2542,19 +2550,19 @@ class ExecutionEngine:
     async def _execute_loop(
         self,
         loop_config: LoopConfig,
-        tasks: List[Task],
-        agents_map: Dict[str, Agent],
+        tasks: list[Task],
+        agents_map: dict[str, Agent],
         execution: Execution,
-        task_outputs: Dict[str, str],
-        task_exec_map: Dict[str, TaskExecution],
+        task_outputs: dict[str, str],
+        task_exec_map: dict[str, TaskExecution],
         db: AsyncSession,
         checkpoint_manager: 'CheckpointManager',
         total_tokens: int,
         total_cost: float,
-        completed_task_ids: Set[str],
+        completed_task_ids: set[str],
         completed_count: int,
         total_tasks: int,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """执行循环
 
         Args:
@@ -2705,20 +2713,20 @@ class ExecutionEngine:
 
     async def execute_with_loops(
         self,
-        tasks: List[Task],
-        loop_configs: List[LoopConfig],
-        agents_map: Dict[str, Agent],
+        tasks: list[Task],
+        loop_configs: list[LoopConfig],
+        agents_map: dict[str, Agent],
         execution: Execution,
-        task_outputs: Dict[str, str],
-        task_exec_map: Dict[str, TaskExecution],
+        task_outputs: dict[str, str],
+        task_exec_map: dict[str, TaskExecution],
         db: AsyncSession,
         checkpoint_manager: 'CheckpointManager',
         total_tokens: int,
         total_cost: float,
-        completed_task_ids: Set[str],
+        completed_task_ids: set[str],
         completed_count: int,
         total_tasks: int,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """执行支持循环的工作流
 
         Args:
@@ -2740,7 +2748,7 @@ class ExecutionEngine:
             包含循环结果和更新后的执行状态
         """
         task_map = {t.id: t for t in tasks}
-        loop_task_ids: Set[str] = set()
+        loop_task_ids: set[str] = set()
 
         # 收集所有循环体任务ID
         for lc in loop_configs:
@@ -3022,7 +3030,7 @@ class ExecutionEngine:
         与 _call_llm 不同：此方法传入工具 schema，支持多轮工具调用。
         当提供 execution_id 时，会查询关联 agent 角色信息注入 system prompt。
         """
-        from app.engine.tools import get_plugin_tool_schemas, execute_tool, get_openai_tools, get_anthropic_tools
+        from app.engine.tools import execute_tool, get_anthropic_tools, get_openai_tools, get_plugin_tool_schemas
 
         # 获取 LLM provider
         all_keys = self.llm_api_keys or {}
@@ -3124,7 +3132,7 @@ class ExecutionEngine:
                     ),
                     timeout=_LLM_TIMEOUT,
                 )
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 logger.error(f"[ITERATION] LLM call timed out after {_LLM_TIMEOUT}s (round {tool_round+1})")
                 raise RuntimeError(f"LLM 调用超时（{_LLM_TIMEOUT}秒），请检查网络或 API 状态")
             except Exception as e:
@@ -3140,7 +3148,7 @@ class ExecutionEngine:
                             ),
                             timeout=_LLM_TIMEOUT,
                         )
-                    except asyncio.TimeoutError:
+                    except TimeoutError:
                         logger.error(f"[ITERATION] LLM call timed out after {_LLM_TIMEOUT}s (no-tools retry)")
                         raise RuntimeError(f"LLM 调用超时（{_LLM_TIMEOUT}秒）")
                     except Exception as e2:
@@ -3289,13 +3297,13 @@ class ExecutionEngine:
 
 
 # 全局执行引擎注册表
-_running_engines: Dict[str, ExecutionEngine] = {}
+_running_engines: dict[str, ExecutionEngine] = {}
 
 
 async def start_execution(
     execution_id: str,
-    llm_api_keys: Dict[str, str] = None,
-    llm_base_urls: Dict[str, str] = None,
+    llm_api_keys: dict[str, str] = None,
+    llm_base_urls: dict[str, str] = None,
     resume: bool = False,
     max_turns: int = 10,
 ):
@@ -3322,7 +3330,7 @@ async def start_execution(
         self, db, execution, tasks, agents_map, task_map,
         task_outputs, task_exec_map, completed_task_ids,
         total_tokens, total_cost, completed_count, total_tasks,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Plan-Execute 模式：Agent 先规划再执行。
 
         1. Plan Phase — 取第一个 Agent 作为 Planner，生成结构化计划
@@ -3371,7 +3379,7 @@ async def start_execution(
         self, db, execution, tasks, agents_map, task_map,
         task_outputs, task_exec_map, completed_task_ids,
         total_tokens, total_cost, completed_count, total_tasks,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Hierarchical 模式：Manager 审查 Worker 输出。
 
         1. Worker agents 执行各自任务
@@ -3456,7 +3464,7 @@ async def start_execution(
         self, db, execution, tasks, agents_map, task_map,
         task_outputs, task_exec_map, completed_task_ids,
         total_tokens, total_cost, completed_count, total_tasks,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Evaluator-Optimizer 模式：评估 + 优化质量循环。
 
         1. Generator agent 生成输出
@@ -3555,7 +3563,7 @@ async def start_execution(
         self, db, execution, tasks, agents_map, task_map,
         task_outputs, task_exec_map, completed_task_ids,
         total_tokens, total_cost, completed_count, total_tasks,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Prompt Chain 模式：链式顺序，前一个任务的输出作为下一个任务的输入。"""
         logger.info(f"[PROMPT_CHAIN] Starting chain with {len(tasks)} task(s)")
 
@@ -3590,7 +3598,7 @@ async def start_execution(
         self, db, execution, tasks, agents_map, task_map,
         task_outputs, task_exec_map, completed_task_ids,
         total_tokens, total_cost, completed_count, total_tasks,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Router 模式：Router agent 分析输入，路由到专门处理该类型任务的专家 agent。"""
         router_keywords = ['router', 'dispatcher', 'classifier', '路由', '分发', '分类']
         router_agent = None
@@ -3663,7 +3671,7 @@ async def start_execution(
         self, db, execution, tasks, agents_map, task_map,
         task_outputs, task_exec_map, completed_task_ids,
         total_tokens, total_cost, completed_count, total_tasks,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """退路：顺序执行（当特殊模式的 Agent 不可用时）。"""
         levels = self._topological_levels(tasks, task_map)
         for level in levels:

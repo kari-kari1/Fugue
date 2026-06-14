@@ -10,11 +10,11 @@
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.execution import Execution, ExecutionStatus
-from app.models.iteration import Iteration, IterationStatus, IterationMode
+from app.models.iteration import Iteration, IterationStatus
 from app.models.user import User
 
 

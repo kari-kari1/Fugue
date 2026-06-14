@@ -3,9 +3,8 @@
 import asyncio
 import json
 import logging
-from typing import Dict, Set, Optional
+
 from fastapi import WebSocket
-from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -15,9 +14,9 @@ class WebSocketManager:
 
     def __init__(self):
         # execution_id -> set of websocket connections
-        self.active_connections: Dict[str, Set[WebSocket]] = {}
+        self.active_connections: dict[str, set[WebSocket]] = {}
         self.heartbeat_interval = 30  # 30秒心跳
-        self._heartbeat_tasks: Dict[int, asyncio.Task] = {}  # websocket id -> heartbeat task
+        self._heartbeat_tasks: dict[int, asyncio.Task] = {}  # websocket id -> heartbeat task
 
     async def connect(self, websocket: WebSocket, execution_id: str):
         """建立WebSocket连接"""

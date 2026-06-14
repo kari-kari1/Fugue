@@ -1,17 +1,18 @@
 """Execution（执行）相关Schema"""
 
 from datetime import datetime
-from typing import Optional, List, Dict, Any
+from typing import Any
+
 from pydantic import BaseModel
 
 
 class ExecutionCreate(BaseModel):
     """创建执行"""
     crew_id: str
-    inputs: Dict[str, Any] = {}
+    inputs: dict[str, Any] = {}
     trigger_type: str = "manual"
-    llm_api_keys: Dict[str, str] = {}  # {"openai": "sk-xxx", "deepseek": "sk-xxx"}
-    llm_base_urls: Dict[str, str] = {}  # {"openai": "https://...", "deepseek": "https://..."}
+    llm_api_keys: dict[str, str] = {}  # {"openai": "sk-xxx", "deepseek": "sk-xxx"}
+    llm_base_urls: dict[str, str] = {}  # {"openai": "https://...", "deepseek": "https://..."}
 
 
 class ExecutionResponse(BaseModel):
@@ -21,15 +22,15 @@ class ExecutionResponse(BaseModel):
     user_id: str
     status: str
     trigger_type: str
-    started_at: Optional[datetime]
-    completed_at: Optional[datetime]
+    started_at: datetime | None
+    completed_at: datetime | None
     total_tokens_used: int
     total_cost_usd: float
-    results: Dict[str, Any]
-    error_log: Optional[str]
-    trace: List[Dict[str, Any]] = []
-    worktree_path: Optional[str] = None
-    sandbox_type: Optional[str] = None
+    results: dict[str, Any]
+    error_log: str | None
+    trace: list[dict[str, Any]] = []
+    worktree_path: str | None = None
+    sandbox_type: str | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -39,26 +40,26 @@ class ExecutionResponse(BaseModel):
 class HeadlessExecutionRequest(BaseModel):
     """无头模式执行请求 — 支持 CI/CD 和 API 集成"""
     crew_id: str
-    inputs: Dict[str, Any] = {}
-    llm_api_keys: Dict[str, str] = {}
-    llm_base_urls: Dict[str, str] = {}
+    inputs: dict[str, Any] = {}
+    llm_api_keys: dict[str, str] = {}
+    llm_base_urls: dict[str, str] = {}
     max_turns: int = 10  # 最大工具调用轮次
     output_format: str = "json"  # "json" 或 "stream-json"
-    webhook_url: Optional[str] = None  # 完成后的回调 URL
+    webhook_url: str | None = None  # 完成后的回调 URL
 
 
 class HeadlessExecutionResponse(BaseModel):
     """无头模式执行响应"""
     execution_id: str
     status: str
-    workflow_name: Optional[str] = None
-    started_at: Optional[datetime] = None
-    completed_at: Optional[datetime] = None
+    workflow_name: str | None = None
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
     total_tokens_used: int = 0
     total_cost_usd: float = 0.0
-    results: Dict[str, Any] = {}
-    error_log: Optional[str] = None
-    trace: List[Dict[str, Any]] = []
+    results: dict[str, Any] = {}
+    error_log: str | None = None
+    trace: list[dict[str, Any]] = []
 
     model_config = {"from_attributes": True}
 
@@ -68,21 +69,21 @@ class TaskExecutionResponse(BaseModel):
     id: str
     execution_id: str
     task_id: str
-    agent_id: Optional[str]
-    task_name: Optional[str] = None
-    agent_name: Optional[str] = None
+    agent_id: str | None
+    task_name: str | None = None
+    agent_name: str | None = None
     status: str
-    started_at: Optional[datetime]
-    completed_at: Optional[datetime]
-    input_context: Dict[str, Any]
-    output: Optional[str]
-    output_json: Optional[Dict[str, Any]]
+    started_at: datetime | None
+    completed_at: datetime | None
+    input_context: dict[str, Any]
+    output: str | None
+    output_json: dict[str, Any] | None
     tokens_used: int
     cost_usd: float
     retry_count: int
-    error_message: Optional[str]
-    thoughts: List[Dict[str, Any]]
-    tool_calls: List[Dict[str, Any]]
+    error_message: str | None
+    thoughts: list[dict[str, Any]]
+    tool_calls: list[dict[str, Any]]
     created_at: datetime
     updated_at: datetime
 

@@ -7,7 +7,6 @@
 import logging
 import uuid as _uuid
 from datetime import datetime
-from typing import Dict
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -32,7 +31,7 @@ async def finalize_task(
     all_tool_calls: list,
     total_tokens: int,
     total_cost: float,
-    task_outputs: Dict[str, str],
+    task_outputs: dict[str, str],
 ):
     """保存任务结果、记忆、知识库索引，发布完成事件"""
     te.status = TaskExecutionStatus.COMPLETED

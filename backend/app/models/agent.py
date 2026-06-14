@@ -1,6 +1,6 @@
 """Agent（智能体）模型"""
 
-from sqlalchemy import Column, String, Text, Integer, Float, Boolean, ForeignKey, JSON
+from sqlalchemy import JSON, Boolean, Column, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 
 from app.models.base import BaseModel

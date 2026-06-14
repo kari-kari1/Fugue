@@ -3,22 +3,15 @@
 提供Plugin基类、Tool装饰器和元数据定义。
 """
 
-import inspect
 import logging
-from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from abc import ABC
+from collections.abc import Callable
+from dataclasses import dataclass
+from functools import wraps
 from typing import (
     Any,
-    Callable,
     ClassVar,
-    Dict,
-    List,
-    Optional,
-    Set,
-    Type,
-    get_type_hints,
 )
-from functools import wraps
 
 logger = logging.getLogger(__name__)
 
@@ -28,14 +21,14 @@ class ToolMeta:
     """工具元数据"""
     name: str
     description: str
-    input_schema: Dict[str, Any]
-    output_schema: Optional[Dict[str, Any]] = None
+    input_schema: dict[str, Any]
+    output_schema: dict[str, Any] | None = None
     permissions: str = "safe"  # 'safe' | 'caution' | 'dangerous'
     category: str = "general"
     version: str = "1.0.0"
     func: Callable = None
 
-    def to_openai_schema(self) -> Dict[str, Any]:
+    def to_openai_schema(self) -> dict[str, Any]:
         """转换为OpenAI function calling格式"""
         return {
             "type": "function",
@@ -46,7 +39,7 @@ class ToolMeta:
             }
         }
 
-    def to_anthropic_schema(self) -> Dict[str, Any]:
+    def to_anthropic_schema(self) -> dict[str, Any]:
         """转换为Anthropic tool_use格式"""
         return {
             "name": self.name,
@@ -84,12 +77,12 @@ class Tool:
 
     def __init__(
         self,
-        input_schema: Dict[str, Any],
-        output_schema: Optional[Dict[str, Any]] = None,
+        input_schema: dict[str, Any],
+        output_schema: dict[str, Any] | None = None,
         permissions: str = "safe",
         category: str = "general",
         version: str = "1.0.0",
-        description: Optional[str] = None,
+        description: str | None = None,
     ):
         self.input_schema = input_schema
         self.output_schema = output_schema
@@ -137,11 +130,11 @@ class PluginMeta(ABC):
     version: ClassVar[str]
     author: ClassVar[str] = "Unknown"
     license: ClassVar[str] = "MIT"
-    homepage: ClassVar[Optional[str]] = None
-    tags: ClassVar[List[str]] = []
+    homepage: ClassVar[str | None] = None
+    tags: ClassVar[list[str]] = []
 
     # 依赖声明
-    dependencies: ClassVar[List[str]] = []  # pip依赖列表
+    dependencies: ClassVar[list[str]] = []  # pip依赖列表
     python_requires: ClassVar[str] = ">=3.10"
 
 
@@ -180,14 +173,14 @@ class Plugin(PluginMeta):
             if not hasattr(cls, attr):
                 raise ValueError(f"Plugin class must define '{attr}' class variable")
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         """初始化插件
 
         Args:
             config: 插件配置（可选）
         """
         self.config = config or {}
-        self._tools: Dict[str, ToolMeta] = {}
+        self._tools: dict[str, ToolMeta] = {}
         self._discover_tools()
 
     def _discover_tools(self):
@@ -204,15 +197,15 @@ class Plugin(PluginMeta):
                 self._tools[attr_name] = tool_meta
 
     @property
-    def tools(self) -> Dict[str, ToolMeta]:
+    def tools(self) -> dict[str, ToolMeta]:
         """获取所有工具"""
         return self._tools.copy()
 
-    def get_tool(self, name: str) -> Optional[ToolMeta]:
+    def get_tool(self, name: str) -> ToolMeta | None:
         """获取指定工具"""
         return self._tools.get(name)
 
-    async def execute_tool(self, name: str, arguments: Dict[str, Any]) -> str:
+    async def execute_tool(self, name: str, arguments: dict[str, Any]) -> str:
         """执行工具
 
         Args:
@@ -250,11 +243,11 @@ class Plugin(PluginMeta):
             logger.error(f"Plugin '{self.name}' tool '{name}' execution failed: {e}")
             raise
 
-    def get_openai_tools_schema(self) -> List[Dict[str, Any]]:
+    def get_openai_tools_schema(self) -> list[dict[str, Any]]:
         """获取所有工具的OpenAI格式Schema"""
         return [tool.to_openai_schema() for tool in self._tools.values()]
 
-    def get_anthropic_tools_schema(self) -> List[Dict[str, Any]]:
+    def get_anthropic_tools_schema(self) -> list[dict[str, Any]]:
         """获取所有工具的Anthropic格式Schema"""
         return [tool.to_anthropic_schema() for tool in self._tools.values()]
 
@@ -274,7 +267,7 @@ class Plugin(PluginMeta):
         """
         pass
 
-    async def health_check(self) -> Dict[str, Any]:
+    async def health_check(self) -> dict[str, Any]:
         """插件健康检查（可选覆盖）
 
         Returns:
@@ -285,7 +278,7 @@ class Plugin(PluginMeta):
             "message": "Plugin is healthy",
         }
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """导出插件元数据为字典"""
         return {
             "name": self.name,

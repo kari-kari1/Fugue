@@ -1,6 +1,6 @@
 """事件流配置模型 — 持久化 @start / @listen / @router 节点"""
 
-from sqlalchemy import Column, String, JSON, ForeignKey, Integer
+from sqlalchemy import JSON, Column, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 
 from app.models.base import BaseModel

@@ -6,7 +6,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.execution import Execution, ExecutionStatus
-from app.models.iteration import Iteration, IterationMode, IterationStatus
 from app.models.user import User
 
 
@@ -116,7 +115,6 @@ async def test_refine_rejected_when_execution_running(
     test_crew: dict,
 ):
     """测试running状态的执行不能迭代"""
-    from sqlalchemy.ext.asyncio import AsyncSession
     # 用直接DB操作创建running状态的execution
     # 这需要通过db_session fixture注入
     # 简化方式：创建一个execution后立即尝试refine

@@ -1,9 +1,8 @@
 """记忆服务单元测试"""
+
 import pytest
-from unittest.mock import patch, AsyncMock, MagicMock
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.memory import AgentMemory, MemoryConfig
 from app.services.memory_service import MemoryService
 
 

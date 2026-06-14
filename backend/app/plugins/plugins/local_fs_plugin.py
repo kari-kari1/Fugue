@@ -1,10 +1,10 @@
 """本地文件系统操作插件 — 提供AI文件读写、目录浏览工具"""
 
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
+from app.engine.local_fs_client import LOCAL_FS_PORT, list_directory, read_file, write_file
 from app.plugins.base import Plugin, Tool
-from app.engine.local_fs_client import read_file, write_file, list_directory, LOCAL_FS_PORT
 
 logger = logging.getLogger(__name__)
 
@@ -151,10 +151,10 @@ class LocalFSPlugin(Plugin):
     async def fs_list(self, path: str) -> str:
         """列出本地目录内容"""
         try:
-            entries: List[Dict[str, Any]] = await list_directory(path)
+            entries: list[dict[str, Any]] = await list_directory(path)
 
-            dirs: List[Dict[str, Any]] = []
-            files: List[Dict[str, Any]] = []
+            dirs: list[dict[str, Any]] = []
+            files: list[dict[str, Any]] = []
             for entry in entries:
                 if entry.get("is_dir"):
                     dirs.append(entry)
@@ -164,7 +164,7 @@ class LocalFSPlugin(Plugin):
             dirs.sort(key=lambda e: e.get("name", ""))
             files.sort(key=lambda e: e.get("name", ""))
 
-            lines: List[str] = []
+            lines: list[str] = []
             lines.append(f"📁 {path}（共 {len(entries)} 项，{len(dirs)} 个目录，{len(files)} 个文件）")
 
             for d in dirs:
@@ -199,7 +199,7 @@ class LocalFSPlugin(Plugin):
         """插件清理"""
         logger.info("LocalFSPlugin v%s cleanup", self.version)
 
-    async def health_check(self) -> Dict[str, Any]:
+    async def health_check(self) -> dict[str, Any]:
         """健康检查"""
         return {
             "healthy": True,

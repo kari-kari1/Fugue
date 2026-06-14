@@ -5,14 +5,15 @@
 
 import asyncio
 import logging
-from typing import Any, Callable, Dict, List, Optional
+from collections.abc import Callable
 from functools import wraps
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 # 全局事件总线
-_event_listeners: Dict[str, List[Callable]] = {}
-_flow_registry: Dict[str, "Flow"] = {}
+_event_listeners: dict[str, list[Callable]] = {}
+_flow_registry: dict[str, "Flow"] = {}
 
 
 class FlowEvent:
@@ -78,7 +79,7 @@ def listen(event_name: str):
     return decorator
 
 
-def router(condition_func: Callable[[Dict], str]):
+def router(condition_func: Callable[[dict], str]):
     """条件路由器。根据事件数据返回下一个事件名，实现条件分支。
 
     Args:

@@ -1,12 +1,13 @@
 """Fugue - FastAPI主应用"""
 
+import asyncio
 import logging
 import logging.handlers
 import os
 import signal
-import asyncio
-from pathlib import Path
 from contextlib import asynccontextmanager
+from pathlib import Path
+
 
 # G3: 配置日志持久化（RotatingFileHandler）
 class _SafeRotatingFileHandler(logging.handlers.RotatingFileHandler):
@@ -51,19 +52,20 @@ def _setup_logging():
     return logging.getLogger(__name__)
 
 logger = _setup_logging()
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from sqlalchemy import select, update
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
-from app.core.config import settings
-from app.core.database import init_db, close_db, AsyncSessionLocal
-from app.models.execution import Execution, ExecutionStatus
 from app.api.v1 import api_router
-from app.plugins.manager import initialize_plugins, shutdown_plugins
+from app.core.config import settings
+from app.core.database import AsyncSessionLocal, close_db, init_db
+from app.models.execution import Execution, ExecutionStatus
 from app.plugins.loader import initialize_plugin_system
+from app.plugins.manager import shutdown_plugins
 
 logger = logging.getLogger(__name__)
 
@@ -207,8 +209,8 @@ async def lifespan(app: FastAPI):
 
     # 自动 seed 内置模板（幂等，已有则跳过）
     try:
-        from app.services.template_seeder import seed_templates
         from app.core.database import AsyncSessionLocal
+        from app.services.template_seeder import seed_templates
         async with AsyncSessionLocal() as seed_db:
             result = await seed_templates(seed_db)
             await seed_db.commit()
@@ -239,7 +241,6 @@ app = FastAPI(
 )
 
 # CORS中间件 — 含桌面应用兼容（Tauri 自定义协议发送 Origin: null）
-import re as _re
 _desktop_origin_regex = r"(https?|tauri)://(localhost|127\.0\.0\.1|tauri\.localhost)(:\d+)?$"
 _cors_origins = settings.CORS_ORIGINS + ["null"]  # "null" 匹配 Tauri WebView 自定义协议
 app.add_middleware(
@@ -253,6 +254,7 @@ app.add_middleware(
 
 # 安全头中间件
 from starlette.middleware.base import BaseHTTPMiddleware
+
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
@@ -269,10 +271,12 @@ app.add_middleware(SecurityHeadersMiddleware)
 
 # 可观测性中间件 — 请求耗时指标
 from app.core.observability import MetricsMiddleware
+
 app.add_middleware(MetricsMiddleware)
 
 # 全局异常处理器
 from app.core.exceptions import register_exception_handlers
+
 register_exception_handlers(app)
 
 # 注册路由
@@ -309,8 +313,9 @@ async def health_check():
 @app.get("/metrics")
 async def prometheus_metrics():
     """Prometheus 指标端点 — 报告第一章 可观测性 (5/10)"""
-    from app.core.observability import metrics
     from fastapi.responses import PlainTextResponse
+
+    from app.core.observability import metrics
     return PlainTextResponse(
         content=metrics.to_prometheus(),
         media_type="text/plain; version=0.0.4; charset=utf-8",

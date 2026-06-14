@@ -5,7 +5,6 @@ import importlib.util
 import logging
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional, Type
 
 from .base import Plugin
 from .manager import get_plugin_manager
@@ -32,21 +31,21 @@ class PluginLoader:
     3. 单文件插件
     """
 
-    def __init__(self, plugin_dir: Optional[Path] = None):
+    def __init__(self, plugin_dir: Path | None = None):
         """初始化插件加载器
 
         Args:
             plugin_dir: 插件目录路径（默认为 backend/app/plugins/plugins/）
         """
         self._plugin_dir = plugin_dir or _get_plugin_dir()
-        self._loaded_paths: Dict[str, Path] = {}  # plugin_name -> file_path
+        self._loaded_paths: dict[str, Path] = {}  # plugin_name -> file_path
 
     @property
     def plugin_dir(self) -> Path:
         """插件目录"""
         return self._plugin_dir
 
-    def discover_plugins(self) -> List[Path]:
+    def discover_plugins(self) -> list[Path]:
         """发现插件目录中的所有插件文件
 
         Returns:
@@ -70,7 +69,7 @@ class PluginLoader:
 
         return plugins
 
-    def load_plugin_from_file(self, file_path: Path) -> List[Type[Plugin]]:
+    def load_plugin_from_file(self, file_path: Path) -> list[type[Plugin]]:
         """从文件加载插件类
 
         Args:
@@ -112,7 +111,7 @@ class PluginLoader:
             logger.error(f"Failed to load plugin from {file_path}: {e}")
             raise
 
-    def load_plugins_from_directory(self) -> List[Type[Plugin]]:
+    def load_plugins_from_directory(self) -> list[type[Plugin]]:
         """从插件目录加载所有插件
 
         Returns:
@@ -153,7 +152,7 @@ class PluginLoader:
 
         logger.info(f"Plugin loader: {len(plugin_classes)} plugins discovered and loaded")
 
-    def _find_plugin_path(self, plugin_class: Type[Plugin]) -> Optional[Path]:
+    def _find_plugin_path(self, plugin_class: type[Plugin]) -> Path | None:
         """查找插件类的源文件路径"""
         try:
             module = sys.modules.get(plugin_class.__module__)
@@ -196,7 +195,7 @@ class PluginLoader:
 
 
 # 全局插件加载器实例
-_plugin_loader: Optional[PluginLoader] = None
+_plugin_loader: PluginLoader | None = None
 
 
 def get_plugin_loader() -> PluginLoader:

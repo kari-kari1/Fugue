@@ -4,12 +4,11 @@ import asyncio
 import logging
 import os
 import shutil
-import tempfile
 import time
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +53,7 @@ class ToolResult:
     output: str
     success: bool = True
     duration_ms: int = 0
-    error: Optional[str] = None
+    error: str | None = None
 
 
 class BaseTool(ABC):
@@ -65,17 +64,17 @@ class BaseTool(ABC):
     permissions: str  # 'safe' | 'caution' | 'dangerous'
 
     @abstractmethod
-    def get_openai_schema(self) -> Dict[str, Any]:
+    def get_openai_schema(self) -> dict[str, Any]:
         """返回 OpenAI function calling 格式的 schema"""
         ...
 
     @abstractmethod
-    def get_anthropic_schema(self) -> Dict[str, Any]:
+    def get_anthropic_schema(self) -> dict[str, Any]:
         """返回 Anthropic tool_use 格式的 schema"""
         ...
 
     @abstractmethod
-    async def execute(self, arguments: Dict[str, Any]) -> str:
+    async def execute(self, arguments: dict[str, Any]) -> str:
         """执行工具，返回结果字符串"""
         ...
 
@@ -89,7 +88,7 @@ class WebSearchTool(BaseTool):
     category = "search"
     permissions = "safe"
 
-    def get_openai_schema(self) -> Dict[str, Any]:
+    def get_openai_schema(self) -> dict[str, Any]:
         return {
             "type": "function",
             "function": {
@@ -106,7 +105,7 @@ class WebSearchTool(BaseTool):
             },
         }
 
-    def get_anthropic_schema(self) -> Dict[str, Any]:
+    def get_anthropic_schema(self) -> dict[str, Any]:
         return {
             "name": "web_search",
             "description": self.description,
@@ -120,7 +119,7 @@ class WebSearchTool(BaseTool):
             },
         }
 
-    async def execute(self, arguments: Dict[str, Any]) -> str:
+    async def execute(self, arguments: dict[str, Any]) -> str:
         query = arguments.get("query", "")
         max_results = min(arguments.get("max_results", 5), 5)
         try:
@@ -157,7 +156,7 @@ class FileReadTool(BaseTool):
     category = "file"
     permissions = "safe"
 
-    def get_openai_schema(self) -> Dict[str, Any]:
+    def get_openai_schema(self) -> dict[str, Any]:
         return {
             "type": "function",
             "function": {
@@ -174,7 +173,7 @@ class FileReadTool(BaseTool):
             },
         }
 
-    def get_anthropic_schema(self) -> Dict[str, Any]:
+    def get_anthropic_schema(self) -> dict[str, Any]:
         return {
             "name": "file_read",
             "description": self.description,
@@ -188,7 +187,7 @@ class FileReadTool(BaseTool):
             },
         }
 
-    async def execute(self, arguments: Dict[str, Any]) -> str:
+    async def execute(self, arguments: dict[str, Any]) -> str:
         file_path = arguments.get("file_path", "")
         encoding = arguments.get("encoding", "utf-8")
         # B6: 路径沙箱验证
@@ -198,7 +197,7 @@ class FileReadTool(BaseTool):
         try:
             # I4: 异步文件读取
             def _read():
-                with open(resolved, "r", encoding=encoding) as f:
+                with open(resolved, encoding=encoding) as f:
                     return f.read(10000)
             content = await asyncio.to_thread(_read)
             return f"[文件内容] {file_path}:\n{content}"
@@ -216,7 +215,7 @@ class FileWriteTool(BaseTool):
     category = "file"
     permissions = "caution"
 
-    def get_openai_schema(self) -> Dict[str, Any]:
+    def get_openai_schema(self) -> dict[str, Any]:
         return {
             "type": "function",
             "function": {
@@ -234,7 +233,7 @@ class FileWriteTool(BaseTool):
             },
         }
 
-    def get_anthropic_schema(self) -> Dict[str, Any]:
+    def get_anthropic_schema(self) -> dict[str, Any]:
         return {
             "name": "file_write",
             "description": self.description,
@@ -249,7 +248,7 @@ class FileWriteTool(BaseTool):
             },
         }
 
-    async def execute(self, arguments: Dict[str, Any]) -> str:
+    async def execute(self, arguments: dict[str, Any]) -> str:
         file_path = arguments.get("file_path", "")
         content = arguments.get("content", "")
         mode = arguments.get("mode", "overwrite")
@@ -277,7 +276,7 @@ class CodeExecuteTool(BaseTool):
     category = "code"
     permissions = "dangerous"
 
-    def get_openai_schema(self) -> Dict[str, Any]:
+    def get_openai_schema(self) -> dict[str, Any]:
         return {
             "type": "function",
             "function": {
@@ -294,7 +293,7 @@ class CodeExecuteTool(BaseTool):
             },
         }
 
-    def get_anthropic_schema(self) -> Dict[str, Any]:
+    def get_anthropic_schema(self) -> dict[str, Any]:
         return {
             "name": "code_execute",
             "description": self.description,
@@ -308,7 +307,7 @@ class CodeExecuteTool(BaseTool):
             },
         }
 
-    async def execute(self, arguments: Dict[str, Any]) -> str:
+    async def execute(self, arguments: dict[str, Any]) -> str:
         language = arguments.get("language", "python")
         code = arguments.get("code", "")
 
@@ -350,7 +349,7 @@ class CodeExecuteTool(BaseTool):
         if sandbox_type == SandboxType.NONE:
             try:
                 return await self._execute_direct(language, sandboxed_code, sandbox_dir)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 return "[错误] 代码执行超时 (30秒)"
             except Exception as e:
                 return f"[错误] 执行失败: {str(e)}"
@@ -423,7 +422,7 @@ class ApiCallTool(BaseTool):
     category = "data"
     permissions = "caution"
 
-    def get_openai_schema(self) -> Dict[str, Any]:
+    def get_openai_schema(self) -> dict[str, Any]:
         return {
             "type": "function",
             "function": {
@@ -442,7 +441,7 @@ class ApiCallTool(BaseTool):
             },
         }
 
-    def get_anthropic_schema(self) -> Dict[str, Any]:
+    def get_anthropic_schema(self) -> dict[str, Any]:
         return {
             "name": "api_call",
             "description": self.description,
@@ -458,11 +457,12 @@ class ApiCallTool(BaseTool):
             },
         }
 
-    async def execute(self, arguments: Dict[str, Any]) -> str:
-        import httpx
+    async def execute(self, arguments: dict[str, Any]) -> str:
         import ipaddress
-        from urllib.parse import urlparse
         import socket
+        from urllib.parse import urlparse
+
+        import httpx
         url = arguments.get("url", "")
         method = arguments.get("method", "GET").upper()
         headers = arguments.get("headers") or {}
@@ -495,7 +495,7 @@ class DatabaseQueryTool(BaseTool):
     category = "data"
     permissions = "dangerous"
 
-    def get_openai_schema(self) -> Dict[str, Any]:
+    def get_openai_schema(self) -> dict[str, Any]:
         return {
             "type": "function",
             "function": {
@@ -513,7 +513,7 @@ class DatabaseQueryTool(BaseTool):
             },
         }
 
-    def get_anthropic_schema(self) -> Dict[str, Any]:
+    def get_anthropic_schema(self) -> dict[str, Any]:
         return {
             "name": "database_query",
             "description": self.description,
@@ -528,7 +528,7 @@ class DatabaseQueryTool(BaseTool):
             },
         }
 
-    async def execute(self, arguments: Dict[str, Any]) -> str:
+    async def execute(self, arguments: dict[str, Any]) -> str:
         query = arguments.get("query", "")
         query_stripped = query.strip()
         query_upper = query_stripped.upper()
@@ -548,8 +548,8 @@ class DatabaseQueryTool(BaseTool):
                 return f"[错误] 安全限制：检测到危险操作 {kw}，仅允许 SELECT 查询。"
 
         try:
+
             from app.core.database import get_engine
-            import json
 
             async with get_engine().connect() as conn:
                 # 设置语句超时
@@ -587,7 +587,7 @@ class ImageGenerationTool(BaseTool):
     category = "media"
     permissions = "safe"
 
-    def get_openai_schema(self) -> Dict[str, Any]:
+    def get_openai_schema(self) -> dict[str, Any]:
         return {
             "type": "function",
             "function": {
@@ -605,7 +605,7 @@ class ImageGenerationTool(BaseTool):
             },
         }
 
-    def get_anthropic_schema(self) -> Dict[str, Any]:
+    def get_anthropic_schema(self) -> dict[str, Any]:
         return {
             "name": "image_generation",
             "description": self.description,
@@ -620,7 +620,7 @@ class ImageGenerationTool(BaseTool):
             },
         }
 
-    async def execute(self, arguments: Dict[str, Any]) -> str:
+    async def execute(self, arguments: dict[str, Any]) -> str:
         prompt = arguments.get("prompt", "")
         size = arguments.get("size", "1024x1024")
         style = arguments.get("style", "vivid")
@@ -658,7 +658,7 @@ class ImageGenerationTool(BaseTool):
 
             images = data.get("data", [])
             if not images:
-                return f"[图像生成] 未返回图像数据"
+                return "[图像生成] 未返回图像数据"
 
             image_url = images[0].get("url", "")
             revised_prompt = images[0].get("revised_prompt", "")
@@ -681,7 +681,7 @@ class TextAnalysisTool(BaseTool):
     category = "analysis"
     permissions = "safe"
 
-    def get_openai_schema(self) -> Dict[str, Any]:
+    def get_openai_schema(self) -> dict[str, Any]:
         return {
             "type": "function",
             "function": {
@@ -702,7 +702,7 @@ class TextAnalysisTool(BaseTool):
             },
         }
 
-    def get_anthropic_schema(self) -> Dict[str, Any]:
+    def get_anthropic_schema(self) -> dict[str, Any]:
         return {
             "name": "text_analysis",
             "description": self.description,
@@ -720,7 +720,7 @@ class TextAnalysisTool(BaseTool):
             },
         }
 
-    async def execute(self, arguments: Dict[str, Any]) -> str:
+    async def execute(self, arguments: dict[str, Any]) -> str:
         text = arguments.get("text", "")
         analysis_type = arguments.get("analysis_type", "summarize")
         target_language = arguments.get("target_language", "en")
@@ -739,11 +739,10 @@ class TextAnalysisTool(BaseTool):
         prompt = PROMPTS.get(analysis_type, PROMPTS["summarize"])
 
         try:
-            from app.engine.llm_provider import get_llm_provider
-            import os
 
             # J3: 使用 Settings 读取 API Key
             from app.core.config import settings as cfg
+            from app.engine.llm_provider import get_llm_provider
             api_key = cfg.OPENAI_API_KEY or cfg.ANTHROPIC_API_KEY or ""
             if not api_key:
                 return self._local_analysis(text, analysis_type, target_language, char_count, word_count)
@@ -764,7 +763,7 @@ class TextAnalysisTool(BaseTool):
                 output += f"\n\n(消耗 {response.tokens_used} tokens)"
             return output
 
-        except Exception as e:
+        except Exception:
             # LLM 调用失败时回退到本地分析
             return self._local_analysis(text, analysis_type, target_language, char_count, word_count)
 
@@ -818,7 +817,7 @@ class RememberTool(BaseTool):
     category = "memory"
     permissions = "safe"
 
-    def get_openai_schema(self) -> Dict[str, Any]:
+    def get_openai_schema(self) -> dict[str, Any]:
         return {
             "type": "function",
             "function": {
@@ -838,7 +837,7 @@ class RememberTool(BaseTool):
             },
         }
 
-    def get_anthropic_schema(self) -> Dict[str, Any]:
+    def get_anthropic_schema(self) -> dict[str, Any]:
         return {
             "name": self.name,
             "description": self.description,
@@ -879,7 +878,7 @@ class RecallTool(BaseTool):
     category = "memory"
     permissions = "safe"
 
-    def get_openai_schema(self) -> Dict[str, Any]:
+    def get_openai_schema(self) -> dict[str, Any]:
         return {
             "type": "function",
             "function": {
@@ -896,7 +895,7 @@ class RecallTool(BaseTool):
             },
         }
 
-    def get_anthropic_schema(self) -> Dict[str, Any]:
+    def get_anthropic_schema(self) -> dict[str, Any]:
         return {
             "name": self.name,
             "description": self.description,
@@ -934,7 +933,7 @@ class SearchKnowledgeTool(BaseTool):
     category = "memory"
     permissions = "safe"
 
-    def get_openai_schema(self) -> Dict[str, Any]:
+    def get_openai_schema(self) -> dict[str, Any]:
         return {
             "type": "function",
             "function": {
@@ -952,7 +951,7 @@ class SearchKnowledgeTool(BaseTool):
             },
         }
 
-    def get_anthropic_schema(self) -> Dict[str, Any]:
+    def get_anthropic_schema(self) -> dict[str, Any]:
         return {
             "name": self.name,
             "description": self.description,
@@ -986,7 +985,7 @@ class SearchKnowledgeTool(BaseTool):
 
 # ─── 工具注册表 ───
 
-_TOOL_REGISTRY: Dict[str, BaseTool] = {}
+_TOOL_REGISTRY: dict[str, BaseTool] = {}
 
 
 def _register_defaults():
@@ -1003,27 +1002,27 @@ def _register_defaults():
 _register_defaults()
 
 
-def get_tool(name: str) -> Optional[BaseTool]:
+def get_tool(name: str) -> BaseTool | None:
     """按名称获取工具"""
     return _TOOL_REGISTRY.get(name)
 
 
-def get_tools_by_names(names: List[str]) -> List[BaseTool]:
+def get_tools_by_names(names: list[str]) -> list[BaseTool]:
     """按名称列表获取工具"""
     return [_TOOL_REGISTRY[n] for n in names if n in _TOOL_REGISTRY]
 
 
-def get_openai_tools(tool_names: List[str]) -> List[Dict[str, Any]]:
+def get_openai_tools(tool_names: list[str]) -> list[dict[str, Any]]:
     """将工具名列表转为 OpenAI function calling 格式"""
     return [_TOOL_REGISTRY[n].get_openai_schema() for n in tool_names if n in _TOOL_REGISTRY]
 
 
-def get_anthropic_tools(tool_names: List[str]) -> List[Dict[str, Any]]:
+def get_anthropic_tools(tool_names: list[str]) -> list[dict[str, Any]]:
     """将工具名列表转为 Anthropic tool_use 格式"""
     return [_TOOL_REGISTRY[n].get_anthropic_schema() for n in tool_names if n in _TOOL_REGISTRY]
 
 
-async def execute_tool(tool_name: str, arguments: Dict[str, Any], call_id: str = "") -> ToolResult:
+async def execute_tool(tool_name: str, arguments: dict[str, Any], call_id: str = "") -> ToolResult:
     """执行单个工具并返回结果（支持内置工具 + 插件工具）"""
     tool = _TOOL_REGISTRY.get(tool_name)
     if not tool:
@@ -1056,7 +1055,7 @@ async def execute_tool(tool_name: str, arguments: Dict[str, Any], call_id: str =
         )
 
 
-async def _try_execute_plugin_tool(tool_name: str, arguments: Dict[str, Any]) -> Optional[str]:
+async def _try_execute_plugin_tool(tool_name: str, arguments: dict[str, Any]) -> str | None:
     """尝试通过插件管理器执行工具，返回 None 表示工具不存在"""
     try:
         from app.plugins.manager import get_plugin_manager
@@ -1071,7 +1070,7 @@ async def _try_execute_plugin_tool(tool_name: str, arguments: Dict[str, Any]) ->
         return f"[错误] 插件工具执行失败: {e}"
 
 
-def get_plugin_tool_schemas(provider: str = "openai") -> List[Dict[str, Any]]:
+def get_plugin_tool_schemas(provider: str = "openai") -> list[dict[str, Any]]:
     """获取所有已加载插件的工具 schema"""
     try:
         from app.plugins.manager import get_plugin_manager

@@ -1,6 +1,5 @@
 """Iteration模型测试"""
 
-import pytest
 from app.models.iteration import Iteration, IterationMode, IterationStatus
 
 

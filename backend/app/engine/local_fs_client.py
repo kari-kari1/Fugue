@@ -3,9 +3,8 @@
 import asyncio
 import logging
 import os
-import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import httpx
 
@@ -43,14 +42,14 @@ def _is_tauri_available() -> bool:
     return port > 0
 
 
-async def _request(endpoint: str, data: Dict[str, Any]) -> Dict[str, Any]:
+async def _request(endpoint: str, data: dict[str, Any]) -> dict[str, Any]:
     """向 Tauri local-fs 服务发送 POST 请求，自带重试逻辑。"""
     base_url, token = _get_fs_config()
     if base_url is None:
         raise RuntimeError("Tauri local-fs 服务不可用")
 
     url = f"{base_url}/{endpoint}"
-    headers: Dict[str, str] = {}
+    headers: dict[str, str] = {}
     if token:
         headers["Authorization"] = f"Bearer {token}"
 
@@ -88,10 +87,10 @@ def _resolve_path(path: str) -> Path:
     return p.expanduser().resolve()
 
 
-async def read_file(path: str, encoding: Optional[str] = None) -> str:
+async def read_file(path: str, encoding: str | None = None) -> str:
     """读取本地文件内容，返回文本。优先 Tauri，回退原生 Python。"""
     if _is_tauri_available():
-        payload: Dict[str, Any] = {"path": path}
+        payload: dict[str, Any] = {"path": path}
         if encoding is not None:
             payload["encoding"] = encoding
         result = await _request("read", payload)
@@ -119,7 +118,7 @@ async def write_file(path: str, content: str, append: bool = False) -> None:
         f.write(content)
 
 
-async def list_directory(path: str) -> List[Any]:
+async def list_directory(path: str) -> list[Any]:
     """列出本地目录内容。优先 Tauri，回退原生 Python。"""
     if _is_tauri_available():
         result = await _request("list", {"path": path})
@@ -142,7 +141,7 @@ async def list_directory(path: str) -> List[Any]:
     return entries
 
 
-async def get_metadata(path: str) -> Dict[str, Any]:
+async def get_metadata(path: str) -> dict[str, Any]:
     """获取本地文件/目录元数据。优先 Tauri，回退原生 Python。"""
     if _is_tauri_available():
         result = await _request("metadata", {"path": path})

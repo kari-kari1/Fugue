@@ -1,13 +1,14 @@
 """记忆服务（短期记忆 + 长期记忆 RAG）"""
 
 import logging
-from typing import List, Dict, Any
+from datetime import UTC
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.memory import MemoryConfig, AgentKnowledgeMapping, AgentMemory
 from app.models.execution import TaskExecution
+from app.models.memory import AgentKnowledgeMapping, AgentMemory, MemoryConfig
 from app.services.vector_store import get_vector_store
 
 logger = logging.getLogger(__name__)
@@ -24,7 +25,7 @@ class MemoryService:
         self,
         execution_id: str,
         window_size: int = 10,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """获取短期记忆（上下文窗口）
 
         从执行历史中获取最近完成的任务结果，作为短期记忆。
@@ -63,7 +64,7 @@ class MemoryService:
         query: str,
         top_k: int = 5,
         strategy: str = "hybrid",
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """从知识库检索相关文档（RAG）— 支持语义/混合检索
 
         Args:
@@ -108,7 +109,7 @@ class MemoryService:
                         ),
                         timeout=5,
                     )
-            except _aio.TimeoutError:
+            except TimeoutError:
                 logger.warning("KB search timed out for %s", mapping.knowledge_base_id)
                 return []
             except Exception:
@@ -126,9 +127,9 @@ class MemoryService:
         self,
         agent_id: str,
         execution_id: str,
-        current_task: Dict[str, Any],
+        current_task: dict[str, Any],
         memory_config: MemoryConfig,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """构建 Agent 的完整上下文
 
         组合短期记忆（上下文窗口）和长期记忆（知识库检索），返回统一的上下文字典。
@@ -142,7 +143,7 @@ class MemoryService:
         Returns:
             包含 short_term_memory / knowledge_base_results 的上下文字典
         """
-        context: Dict[str, Any] = {}
+        context: dict[str, Any] = {}
 
         # 短期记忆
         if memory_config.short_term_enabled:
@@ -221,7 +222,7 @@ class MemoryService:
         agent_id: str,
         query: str,
         top_k: int = 5,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """召回与查询相关的 Agent 记忆。
 
         优先使用向量检索（超时5秒），降级到DB查询。
@@ -301,7 +302,7 @@ class MemoryService:
         alpha: float = 0.3,
         beta: float = 0.4,
         gamma: float = 0.3,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """复合评分记忆召回 — 三维检索（recency + semantic + importance）
 
         先用向量检索获取候选，再叠加 recency 和 importance 计算最终得分。
@@ -315,7 +316,7 @@ class MemoryService:
             gamma: importance 权重
         """
         import asyncio as _aio
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         # 向量语义检索（取3倍候选）
         candidates = []
@@ -329,7 +330,7 @@ class MemoryService:
                     ),
                     timeout=5,
                 )
-                now = datetime.now(timezone.utc)
+                now = datetime.now(UTC)
                 for r in vs_results:
                     # 计算 recency：基于记忆创建时间的指数衰减
                     created_str = r.get("metadata", {}).get("created_at")
@@ -362,7 +363,7 @@ class MemoryService:
                 .order_by(AgentMemory.importance.desc(), AgentMemory.recency_weight.desc(), AgentMemory.created_at.desc())
                 .limit(top_k * 2)
             )
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             for m in db_result.scalars().all():
                 age_hours = (now - (m.created_at or now)).total_seconds() / 3600
                 candidates.append({
@@ -465,7 +466,7 @@ class MemoryService:
         self,
         scope: str,
         top_k: int = 20,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """按scope检索记忆。
 
         Args:
@@ -514,7 +515,7 @@ class MemoryService:
             await self.db.delete(m)
         return len(memories)
 
-    async def memory_tree(self, crew_id: str) -> Dict[str, Any]:
+    async def memory_tree(self, crew_id: str) -> dict[str, Any]:
         """查看项目的scope树结构。
 
         Args:
@@ -530,7 +531,7 @@ class MemoryService:
         )
         memories = result.scalars().all()
 
-        tree: Dict[str, Any] = {
+        tree: dict[str, Any] = {
             "project_id": crew_id,
             "scopes": {},
             "total_memories": len(memories),

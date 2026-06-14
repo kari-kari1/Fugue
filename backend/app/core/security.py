@@ -1,18 +1,16 @@
 """安全相关功能 - JWT认证、密码哈希"""
 
-from datetime import datetime, timedelta, timezone
-from typing import Optional
+from datetime import UTC, datetime, timedelta
 
 import bcrypt
-from jose import JWTError, jwt
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from jose import JWTError, jwt
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_db
-
 
 # HTTP Bearer认证
 security = HTTPBearer()
@@ -34,10 +32,10 @@ def get_password_hash(password: str) -> str:
     ).decode('utf-8')
 
 
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
     """创建访问令牌"""
     to_encode = data.copy()
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     if expires_delta:
         expire = now + expires_delta
     else:
@@ -47,7 +45,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     return encoded_jwt
 
 
-def decode_access_token(token: str) -> Optional[dict]:
+def decode_access_token(token: str) -> dict | None:
     """解码访问令牌"""
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
@@ -56,7 +54,7 @@ def decode_access_token(token: str) -> Optional[dict]:
         return None
 
 
-def get_token_expiry(token: str) -> Optional[datetime]:
+def get_token_expiry(token: str) -> datetime | None:
     """解码Token并返回过期时间"""
     try:
         payload = jwt.decode(
@@ -66,7 +64,7 @@ def get_token_expiry(token: str) -> Optional[datetime]:
         exp_timestamp = payload.get("exp")
         if exp_timestamp is None:
             return None
-        return datetime.fromtimestamp(exp_timestamp, tz=timezone.utc)
+        return datetime.fromtimestamp(exp_timestamp, tz=UTC)
     except JWTError:
         return None
 
@@ -76,7 +74,7 @@ def get_token_remaining_seconds(token: str) -> int:
     exp = get_token_expiry(token)
     if exp is None:
         return 0
-    remaining = (exp - datetime.now(timezone.utc)).total_seconds()
+    remaining = (exp - datetime.now(UTC)).total_seconds()
     return max(int(remaining), 0)
 
 

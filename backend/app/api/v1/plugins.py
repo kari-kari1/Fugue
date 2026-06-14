@@ -1,14 +1,15 @@
 """插件管理API"""
 
 import logging
-from typing import Dict, Any, List, Optional
-from fastapi import APIRouter, HTTPException, Depends, Query
+from typing import Any
+
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from app.api.deps import get_current_user
 from app.models.user import User
-from app.plugins.manager import get_plugin_manager
 from app.plugins.loader import get_plugin_loader
+from app.plugins.manager import get_plugin_manager
 from app.plugins.sandbox import get_sandbox_pool
 
 logger = logging.getLogger(__name__)
@@ -22,13 +23,13 @@ class PluginInstallRequest(BaseModel):
     """安装插件请求"""
     plugin_name: str = Field(..., min_length=1, max_length=100)
     source: str = Field(default="local", description="来源：local/marketplace/github")
-    config: Optional[Dict[str, Any]] = None
+    config: dict[str, Any] | None = None
 
 
 class PluginExecuteRequest(BaseModel):
     """执行工具请求"""
     tool_name: str = Field(..., min_length=1)
-    arguments: Dict[str, Any] = Field(default_factory=dict)
+    arguments: dict[str, Any] = Field(default_factory=dict)
 
 
 class PluginReloadRequest(BaseModel):
@@ -55,8 +56,8 @@ async def list_plugins(
 
 @router.get("/tools")
 async def list_tools(
-    category: Optional[str] = Query(None, description="按分类过滤"),
-    permission: Optional[str] = Query(None, description="按权限等级过滤"),
+    category: str | None = Query(None, description="按分类过滤"),
+    permission: str | None = Query(None, description="按权限等级过滤"),
     current_user: User = Depends(get_current_user),
 ):
     """列出所有可用工具"""
@@ -145,8 +146,8 @@ async def execute_tool(
 
 @router.get("/schemas/openai")
 async def get_openai_schemas(
-    category: Optional[str] = Query(None),
-    permission: Optional[str] = Query(None),
+    category: str | None = Query(None),
+    permission: str | None = Query(None),
     current_user: User = Depends(get_current_user),
 ):
     """获取OpenAI格式的工具Schema"""
@@ -167,8 +168,8 @@ async def get_openai_schemas(
 
 @router.get("/schemas/anthropic")
 async def get_anthropic_schemas(
-    category: Optional[str] = Query(None),
-    permission: Optional[str] = Query(None),
+    category: str | None = Query(None),
+    permission: str | None = Query(None),
     current_user: User = Depends(get_current_user),
 ):
     """获取Anthropic格式的工具Schema"""

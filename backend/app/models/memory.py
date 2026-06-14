@@ -1,6 +1,6 @@
 """记忆与知识库模型"""
 
-from sqlalchemy import Column, String, JSON, ForeignKey, Text, Integer, Boolean, Float
+from sqlalchemy import JSON, Boolean, Column, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 
 from app.models.base import BaseModel

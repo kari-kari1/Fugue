@@ -4,7 +4,7 @@ import logging
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Optional, List, Dict, Any
+from typing import Any
 
 import httpx
 
@@ -18,8 +18,8 @@ class ToolCall:
     """工具调用请求"""
     id: str
     name: str
-    arguments: Dict[str, Any]
-    result: Optional[str] = None
+    arguments: dict[str, Any]
+    result: str | None = None
 
 
 @dataclass
@@ -33,8 +33,8 @@ class LLMResponse:
     completion_tokens: int = 0
     cost_usd: float = 0.0
     duration_ms: int = 0
-    tool_calls: List[ToolCall] = field(default_factory=list)
-    raw_response: Dict[str, Any] = field(default_factory=dict)
+    tool_calls: list[ToolCall] = field(default_factory=list)
+    raw_response: dict[str, Any] = field(default_factory=dict)
 
 
 class StreamEvent:
@@ -49,21 +49,21 @@ class BaseLLMProvider(ABC):
     @abstractmethod
     async def chat(
         self,
-        messages: List[Dict[str, str]],
+        messages: list[dict[str, str]],
         model: str,
         temperature: float = 0.7,
         max_tokens: int = 4096,
-        tools: Optional[List[Dict[str, Any]]] = None,
+        tools: list[dict[str, Any]] | None = None,
     ) -> LLMResponse:
         ...
 
     async def chat_stream(
         self,
-        messages: List[Dict[str, str]],
+        messages: list[dict[str, str]],
         model: str,
         temperature: float = 0.7,
         max_tokens: int = 4096,
-        tools: Optional[List[Dict[str, Any]]] = None,
+        tools: list[dict[str, Any]] | None = None,
     ):
         """流式聊天 — 默认回退到非流式"""
         resp = await self.chat(messages, model, temperature, max_tokens, tools)
@@ -93,7 +93,7 @@ class OpenAIProvider(BaseLLMProvider):
         "gpt-3.5-turbo": {"input": 0.0005, "output": 0.0015},
     }
 
-    def __init__(self, api_key: Optional[str] = None, base_url: Optional[str] = None):
+    def __init__(self, api_key: str | None = None, base_url: str | None = None):
         self.api_key = api_key or settings.OPENAI_API_KEY
         self.base_url = (base_url or self.BASE_URL).rstrip("/")
         if not self.api_key:
@@ -101,15 +101,15 @@ class OpenAIProvider(BaseLLMProvider):
 
     async def chat(
         self,
-        messages: List[Dict[str, str]],
+        messages: list[dict[str, str]],
         model: str = "gpt-4o",
         temperature: float = 0.7,
         max_tokens: int = 4096,
-        tools: Optional[List[Dict[str, Any]]] = None,
+        tools: list[dict[str, Any]] | None = None,
     ) -> LLMResponse:
         start = time.monotonic()
 
-        payload: Dict[str, Any] = {
+        payload: dict[str, Any] = {
             "model": model,
             "messages": messages,
             "temperature": temperature,
@@ -279,7 +279,7 @@ class AnthropicProvider(BaseLLMProvider):
         "claude-3-opus-20240229": {"input": 0.015, "output": 0.075},
     }
 
-    def __init__(self, api_key: Optional[str] = None, base_url: Optional[str] = None):
+    def __init__(self, api_key: str | None = None, base_url: str | None = None):
         self.api_key = api_key or settings.ANTHROPIC_API_KEY
         self.base_url = (base_url or self.BASE_URL).rstrip("/")
         if not self.api_key:
@@ -287,11 +287,11 @@ class AnthropicProvider(BaseLLMProvider):
 
     async def chat(
         self,
-        messages: List[Dict[str, str]],
+        messages: list[dict[str, str]],
         model: str = "claude-sonnet-4-20250514",
         temperature: float = 0.7,
         max_tokens: int = 4096,
-        tools: Optional[List[Dict[str, Any]]] = None,
+        tools: list[dict[str, Any]] | None = None,
     ) -> LLMResponse:
         start = time.monotonic()
 
@@ -304,7 +304,7 @@ class AnthropicProvider(BaseLLMProvider):
             else:
                 chat_messages.append(msg)
 
-        body: Dict[str, Any] = {
+        body: dict[str, Any] = {
             "model": model,
             "messages": chat_messages,
             "max_tokens": max_tokens,
@@ -371,11 +371,11 @@ class MockProvider(BaseLLMProvider):
 
     async def chat(
         self,
-        messages: List[Dict[str, str]],
+        messages: list[dict[str, str]],
         model: str = "mock-model",
         temperature: float = 0.7,
         max_tokens: int = 4096,
-        tools: Optional[List[Dict[str, Any]]] = None,
+        tools: list[dict[str, Any]] | None = None,
     ) -> LLMResponse:
         import asyncio
         start = time.monotonic()
@@ -463,7 +463,7 @@ class MockProvider(BaseLLMProvider):
         return 0.0
 
 
-def _create_provider(name: str, key: str, base_url: Optional[str] = None) -> BaseLLMProvider:
+def _create_provider(name: str, key: str, base_url: str | None = None) -> BaseLLMProvider:
     """根据名称创建具体的 LLM provider 实例"""
     if name == "anthropic":
         return AnthropicProvider(api_key=key, base_url=base_url)
@@ -475,10 +475,10 @@ def _create_provider(name: str, key: str, base_url: Optional[str] = None) -> Bas
 
 def get_llm_provider(
     provider_name: str,
-    api_key: Optional[str] = None,
-    base_url: Optional[str] = None,
-    all_keys: Optional[Dict[str, str]] = None,
-    all_base_urls: Optional[Dict[str, str]] = None,
+    api_key: str | None = None,
+    base_url: str | None = None,
+    all_keys: dict[str, str] | None = None,
+    all_base_urls: dict[str, str] | None = None,
 ) -> BaseLLMProvider:
     """根据提供商名称获取LLM实例。
 
@@ -553,9 +553,10 @@ async def update_provider_health(provider_name: str, success: bool):
         success: 调用是否成功
     """
     try:
+        from sqlalchemy import select
+
         from app.core.database import db_session_manager
         from app.models.llm_provider import LLMProvider
-        from sqlalchemy import select
 
         async with db_session_manager.get_session() as db:
             result = await db.execute(
@@ -580,7 +581,7 @@ async def update_provider_health(provider_name: str, success: bool):
         logger.debug(f"Failed to update provider health: {e}")
 
 
-def select_degraded_model(model: str, budget_remaining: Optional[float], budget_total: Optional[float]) -> str:
+def select_degraded_model(model: str, budget_remaining: float | None, budget_total: float | None) -> str:
     """根据预算剩余比例选择降级模型。
 
     Args:

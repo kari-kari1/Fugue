@@ -1,23 +1,29 @@
 """认证相关API"""
 
-from datetime import timedelta, datetime, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
-from fastapi import APIRouter, HTTPException, status, Depends
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import HTTPBearer
 from sqlalchemy import select
 
-from app.api.deps import DatabaseSession, CurrentUser, CurrentSuperUser
-from fastapi.security import HTTPBearer
+from app.api.deps import CurrentSuperUser, CurrentUser, DatabaseSession
 from app.core.config import settings
 from app.core.security import (
-    verify_password,
-    get_password_hash,
     create_access_token,
+    get_password_hash,
     get_token_remaining_seconds,
+    verify_password,
 )
 from app.models.user import User
 from app.schemas.user import (
-    UserCreate, UserLogin, UserResponse, Token, TokenInfo,
-    ForgotPasswordRequest, ResetPasswordRequest,
+    ForgotPasswordRequest,
+    ResetPasswordRequest,
+    Token,
+    TokenInfo,
+    UserCreate,
+    UserLogin,
+    UserResponse,
 )
 
 router = APIRouter()
@@ -81,7 +87,7 @@ async def login(login_data: UserLogin, db: DatabaseSession):
     """用户登录"""
     # B15: 登录失败次数限制
     email_key = login_data.email.lower()
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     attempt = _failed_login_attempts.get(email_key)
     if attempt and (now - attempt["first_attempt"]) < _FAILED_ATTEMPTS_WINDOW:
         if attempt["count"] >= _MAX_FAILED_ATTEMPTS:
@@ -159,7 +165,7 @@ async def forgot_password(req: ForgotPasswordRequest, db: DatabaseSession):
     """发起密码重置（生成token，15分钟有效；暂不发邮件）"""
     # B13: 密码重置频率限制 — 每个邮箱15分钟内最多3次
     email_key = req.email.lower()
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     rc = _reset_request_counts.get(email_key)
     if rc and (now - rc["window_start"]) < _RESET_REQUEST_WINDOW:
         if rc["count"] >= _MAX_RESET_REQUESTS:
@@ -183,7 +189,7 @@ async def forgot_password(req: ForgotPasswordRequest, db: DatabaseSession):
     token = uuid4().hex
     reset_tokens[token] = {
         "user_id": user.id,
-        "expires_at": datetime.now(timezone.utc) + timedelta(minutes=15),
+        "expires_at": datetime.now(UTC) + timedelta(minutes=15),
     }
 
     # 安全：不返回 reset_token，仅提示邮件已发送
@@ -197,7 +203,7 @@ async def reset_password(req: ResetPasswordRequest, db: DatabaseSession):
     if not entry:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="无效或已过期的重置Token")
 
-    if datetime.now(timezone.utc) > entry["expires_at"]:
+    if datetime.now(UTC) > entry["expires_at"]:
         del reset_tokens[req.reset_token]
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="无效或已过期的重置Token")
 

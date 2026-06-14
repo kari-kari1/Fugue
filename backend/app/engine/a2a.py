@@ -8,9 +8,10 @@
 
 import asyncio
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -25,9 +26,9 @@ class A2AMessage:
     receiver_id: str     # 接收方 Agent ID
     message_type: str    # request / response / broadcast
     content: str
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
     timestamp: str = field(default_factory=lambda: datetime.utcnow().isoformat())
-    reply_to: Optional[str] = None  # 回复的消息 ID
+    reply_to: str | None = None  # 回复的消息 ID
 
 
 @dataclass
@@ -35,8 +36,8 @@ class AgentCapability:
     """Agent 能力描述"""
     agent_id: str
     name: str
-    skills: List[str] = field(default_factory=list)      # 技能标签 ["research", "coding", ...]
-    tools: List[str] = field(default_factory=list)        # 可用工具列表
+    skills: list[str] = field(default_factory=list)      # 技能标签 ["research", "coding", ...]
+    tools: list[str] = field(default_factory=list)        # 可用工具列表
     max_concurrent: int = 1                               # 最大并发任务数
     current_load: int = 0                                 # 当前负载
     success_rate: float = 1.0                             # 历史成功率
@@ -49,9 +50,9 @@ class A2AMessageBus:
     """Agent 间通信消息总线"""
 
     def __init__(self):
-        self._channels: Dict[str, asyncio.Queue] = {}  # agent_id -> message queue
-        self._history: List[A2AMessage] = []
-        self._subscribers: Dict[str, List[Callable]] = {}  # event_type -> callbacks
+        self._channels: dict[str, asyncio.Queue] = {}  # agent_id -> message queue
+        self._history: list[A2AMessage] = []
+        self._subscribers: dict[str, list[Callable]] = {}  # event_type -> callbacks
 
     def register_agent(self, agent_id: str):
         """注册 Agent 到消息总线"""
@@ -80,21 +81,21 @@ class A2AMessageBus:
             except Exception as e:
                 logger.error("A2A subscriber error: %s", e)
 
-    async def receive(self, agent_id: str, timeout: float = 30.0) -> Optional[A2AMessage]:
+    async def receive(self, agent_id: str, timeout: float = 30.0) -> A2AMessage | None:
         """接收消息（带超时）"""
         queue = self._channels.get(agent_id)
         if not queue:
             return None
         try:
             return await asyncio.wait_for(queue.get(), timeout=timeout)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             return None
 
     def subscribe(self, message_type: str, callback: Callable):
         """订阅特定类型的消息"""
         self._subscribers.setdefault(message_type, []).append(callback)
 
-    def get_history(self, agent_id: Optional[str] = None, limit: int = 50) -> List[A2AMessage]:
+    def get_history(self, agent_id: str | None = None, limit: int = 50) -> list[A2AMessage]:
         """获取消息历史"""
         msgs = self._history
         if agent_id:
@@ -111,7 +112,7 @@ class DynamicTaskAssigner:
     """
 
     def __init__(self):
-        self._capabilities: Dict[str, AgentCapability] = {}
+        self._capabilities: dict[str, AgentCapability] = {}
 
     def register_capability(self, cap: AgentCapability):
         """注册 Agent 能力"""
@@ -133,10 +134,10 @@ class DynamicTaskAssigner:
     def assign(
         self,
         task_name: str,
-        required_skills: List[str] = None,
-        required_tools: List[str] = None,
-        preferred_agent: Optional[str] = None,
-    ) -> Optional[str]:
+        required_skills: list[str] = None,
+        required_tools: list[str] = None,
+        preferred_agent: str | None = None,
+    ) -> str | None:
         """为任务分配最佳 Agent
 
         评分规则:
@@ -201,13 +202,13 @@ class SelfHealingManager:
     def __init__(self, assigner: DynamicTaskAssigner, max_reassigns: int = 2):
         self.assigner = assigner
         self.max_reassigns = max_reassigns
-        self._reassign_count: Dict[str, int] = {}  # task_id -> reassign count
+        self._reassign_count: dict[str, int] = {}  # task_id -> reassign count
 
     def can_reassign(self, task_id: str) -> bool:
         """检查是否还可以重分配"""
         return self._reassign_count.get(task_id, 0) < self.max_reassigns
 
-    def get_failed_agents(self, task_id: str) -> List[str]:
+    def get_failed_agents(self, task_id: str) -> list[str]:
         """获取已失败的 Agent 列表（避免重复分配）"""
         # 简化实现: 通过 reassign_count 推断
         return []
@@ -223,9 +224,9 @@ class SelfHealingManager:
         task_id: str,
         task_name: str,
         failed_agent_id: str,
-        required_skills: List[str] = None,
-        required_tools: List[str] = None,
-    ) -> Optional[str]:
+        required_skills: list[str] = None,
+        required_tools: list[str] = None,
+    ) -> str | None:
         """尝试重分配任务到其他 Agent
 
         Returns: 新的 Agent ID，或 None（无法重分配）
@@ -258,9 +259,9 @@ class SelfHealingManager:
 
 # ─── 全局单例 ──────────────────────────────────────────────────────────────
 
-_a2a_bus: Optional[A2AMessageBus] = None
-_task_assigner: Optional[DynamicTaskAssigner] = None
-_self_healer: Optional[SelfHealingManager] = None
+_a2a_bus: A2AMessageBus | None = None
+_task_assigner: DynamicTaskAssigner | None = None
+_self_healer: SelfHealingManager | None = None
 
 
 def get_a2a_bus() -> A2AMessageBus:

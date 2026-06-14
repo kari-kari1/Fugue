@@ -1,6 +1,6 @@
 """执行断点检查点模型"""
 
-from sqlalchemy import Column, String, JSON, ForeignKey, Integer
+from sqlalchemy import JSON, Column, ForeignKey, Integer, String
 
 from app.models.base import BaseModel
 

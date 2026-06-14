@@ -2,15 +2,15 @@
 
 import logging
 import uuid
-from typing import Optional, List
 from datetime import datetime
+
 from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
-from pydantic import BaseModel
 
-from app.api.deps import DatabaseSession, CurrentUser
-from app.models.memory import KnowledgeBase, Document, AgentKnowledgeMapping
+from app.api.deps import CurrentUser, DatabaseSession
+from app.models.memory import AgentKnowledgeMapping, Document, KnowledgeBase
 from app.services.vector_store import get_vector_store
 
 logger = logging.getLogger(__name__)
@@ -24,14 +24,14 @@ router = APIRouter()
 class KnowledgeBaseCreate(BaseModel):
     """创建知识库请求"""
     name: str
-    description: Optional[str] = None
+    description: str | None = None
     embedding_model: str = "all-MiniLM-L6-v2"
 
 
 class KnowledgeBaseUpdate(BaseModel):
     """更新知识库请求"""
-    name: Optional[str] = None
-    description: Optional[str] = None
+    name: str | None = None
+    description: str | None = None
 
 
 class AgentMappingOut(BaseModel):
@@ -47,12 +47,12 @@ class KnowledgeBaseOut(BaseModel):
     """知识库输出"""
     id: str
     name: str
-    description: Optional[str]
-    embedding_model: Optional[str] = "all-MiniLM-L6-v2"
+    description: str | None
+    embedding_model: str | None = "all-MiniLM-L6-v2"
     document_count: int
     chunk_count: int
-    agent_mappings: Optional[List[AgentMappingOut]] = None
-    created_at: Optional[datetime] = None
+    agent_mappings: list[AgentMappingOut] | None = None
+    created_at: datetime | None = None
 
     model_config = {"from_attributes": True}
 
@@ -60,12 +60,12 @@ class KnowledgeBaseOut(BaseModel):
 class DocumentChunkIn(BaseModel):
     """手动添加文档块"""
     content: str
-    metadata: Optional[dict] = None
+    metadata: dict | None = None
 
 
 class ChunkBatchIn(BaseModel):
     """批量添加文档块请求"""
-    chunks: List[DocumentChunkIn]
+    chunks: list[DocumentChunkIn]
 
 
 class AgentMappingIn(BaseModel):
@@ -76,7 +76,7 @@ class AgentMappingIn(BaseModel):
 # --- CRUD Endpoints ---
 
 
-@router.get("/", response_model=List[KnowledgeBaseOut])
+@router.get("/", response_model=list[KnowledgeBaseOut])
 async def list_knowledge_bases(
     db: DatabaseSession,
     current_user: CurrentUser,
@@ -365,7 +365,7 @@ async def search_knowledge_base(
 # --- Agent-知识库关联 ---
 
 
-@router.get("/agent/{agent_id}/knowledge-bases", response_model=List[KnowledgeBaseOut])
+@router.get("/agent/{agent_id}/knowledge-bases", response_model=list[KnowledgeBaseOut])
 async def list_agent_knowledge_bases(
     agent_id: str,
     db: DatabaseSession,
