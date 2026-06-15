@@ -11,6 +11,7 @@ import base64
 import json
 import logging
 import uuid
+from typing import Dict
 
 from fastapi import APIRouter, Request
 from sse_starlette.sse import EventSourceResponse
@@ -28,7 +29,7 @@ SERVER_VERSION = "0.1.0"
 # ── SSE 连接管理 ────────────────────────────────────────────────
 
 # session_id → asyncio.Queue，用于向 SSE 客户端推送事件
-_sse_queues: dict[str, asyncio.Queue] = {}
+_sse_queues: Dict[str, asyncio.Queue] = {}
 
 
 async def _broadcast_to_sse(event_type: str, data: dict):
@@ -71,7 +72,7 @@ async def mcp_server_sse(request: Request):
                 try:
                     msg = await asyncio.wait_for(queue.get(), timeout=30)
                     yield msg
-                except TimeoutError:
+                except asyncio.TimeoutError:
                     # 30 秒无事件，发送心跳保活
                     yield {"event": "ping", "data": "{}"}
         finally:

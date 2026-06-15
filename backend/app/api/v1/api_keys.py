@@ -1,17 +1,18 @@
 """API Key管理API — 用于REST API发布功能"""
 
-import hashlib
 import logging
 import secrets
-from datetime import UTC, datetime
-
-from fastapi import APIRouter, HTTPException
+import hashlib
+from typing import List, Optional
+from datetime import datetime, timezone
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import CurrentUser, DatabaseSession
+from app.api.deps import DatabaseSession, CurrentUser
 from app.models.api_key import APIKey
+from app.models.published_workflow import PublishedWorkflow
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -23,9 +24,9 @@ router = APIRouter()
 class APIKeyCreate(BaseModel):
     """创建API Key请求"""
     name: str = Field(..., min_length=1, max_length=100)
-    permissions: list[str] = Field(default_factory=lambda: ["execute"])
+    permissions: List[str] = Field(default_factory=lambda: ["execute"])
     rate_limit: int = Field(default=1000, ge=10, le=10000)
-    expires_in_days: int | None = Field(None, ge=1, le=365)
+    expires_in_days: Optional[int] = Field(None, ge=1, le=365)
 
 
 class APIKeyResponse(BaseModel):
@@ -34,10 +35,10 @@ class APIKeyResponse(BaseModel):
     name: str
     key_prefix: str
     is_active: bool
-    permissions: list[str]
+    permissions: List[str]
     rate_limit: int
-    last_used_at: str | None
-    expires_at: str | None
+    last_used_at: Optional[str]
+    expires_at: Optional[str]
     created_at: str
 
 
@@ -45,7 +46,7 @@ class WorkflowPublishRequest(BaseModel):
     """发布工作流请求"""
     slug: str = Field(..., min_length=3, max_length=100, pattern="^[a-z0-9-]+$")
     name: str = Field(..., min_length=1, max_length=200)
-    description: str | None = Field(None, max_length=500)
+    description: Optional[str] = Field(None, max_length=500)
     is_public: bool = False
     version: str = "1.0.0"
     rate_limit: int = Field(default=100, ge=10, le=1000)
@@ -54,8 +55,8 @@ class WorkflowPublishRequest(BaseModel):
 class WorkflowExecuteRequest(BaseModel):
     """执行工作流请求"""
     inputs: dict = Field(default_factory=dict)
-    callback_url: str | None = None
-    timeout: int | None = Field(None, ge=30, le=3600)
+    callback_url: Optional[str] = None
+    timeout: Optional[int] = Field(None, ge=30, le=3600)
 
 
 # ─── 辅助函数 ───
@@ -76,8 +77,8 @@ def generate_api_key() -> tuple[str, str, str]:
 
 async def get_api_key_from_header(
     db: AsyncSession,
-    authorization: str | None,
-) -> APIKey | None:
+    authorization: Optional[str],
+) -> Optional[APIKey]:
     """从Authorization header获取API Key"""
     if not authorization or not authorization.startswith("Bearer "):
         return None
@@ -97,7 +98,7 @@ async def get_api_key_from_header(
 # ─── API端点 ───
 
 
-@router.get("/", response_model=list[APIKeyResponse])
+@router.get("/", response_model=List[APIKeyResponse])
 async def list_api_keys(
     db: DatabaseSession,
     current_user: CurrentUser,
@@ -138,7 +139,7 @@ async def create_api_key(
     expires_at = None
     if data.expires_in_days:
         from datetime import timedelta
-        expires_at = datetime.now(UTC) + timedelta(days=data.expires_in_days)
+        expires_at = datetime.now(timezone.utc) + timedelta(days=data.expires_in_days)
 
     api_key = APIKey(
         user_id=current_user.id,

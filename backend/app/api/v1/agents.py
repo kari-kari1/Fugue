@@ -1,18 +1,18 @@
 """智能体（Agent）相关API"""
 
-
+from typing import List
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select
 
-from app.api.deps import CurrentUser, DatabaseSession
+from app.api.deps import DatabaseSession, CurrentUser
 from app.models.agent import Agent
 from app.models.crew import Crew
-from app.schemas.agent import AgentCreate, AgentResponse, AgentUpdate
+from app.schemas.agent import AgentCreate, AgentUpdate, AgentResponse
 
 router = APIRouter()
 
 
-@router.get("/crew/{crew_id}", response_model=list[AgentResponse])
+@router.get("/crew/{crew_id}", response_model=List[AgentResponse])
 async def list_agents(
     crew_id: str,
     db: DatabaseSession,

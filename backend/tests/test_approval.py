@@ -1,8 +1,9 @@
 """审批模式三层级单元测试"""
 
 import asyncio
-
 import pytest
+from datetime import datetime, timezone
+from unittest.mock import AsyncMock
 
 from app.services.approval_manager import (
     ApprovalManager,
@@ -11,6 +12,7 @@ from app.services.approval_manager import (
     ToolRiskLevel,
     get_approval_manager,
 )
+
 
 # ── 工具风险等级分类测试 ──────────────────────────────────────
 

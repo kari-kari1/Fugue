@@ -22,8 +22,9 @@ import sqlite3
 import zipfile
 from collections import Counter
 from datetime import datetime
-from typing import Any
-from urllib.parse import parse_qs, urlparse
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+from urllib.parse import urlparse, parse_qs
 
 from app.plugins.base import Plugin, Tool
 
@@ -148,7 +149,7 @@ class EnhancedToolsPlugin(Plugin):
                 wb.close()
 
                 if not rows:
-                    return "[提示] 工作表为空"
+                    return f"[提示] 工作表为空"
 
                 # 格式化为表格
                 header = rows[0] if rows else []
@@ -301,10 +302,10 @@ class EnhancedToolsPlugin(Plugin):
 
                 content = "\n\n".join(parts)
                 if not content.strip():
-                    return "[提示] PDF 未提取到文本（可能是扫描型PDF，需OCR）"
+                    return f"[提示] PDF 未提取到文本（可能是扫描型PDF，需OCR）"
 
                 if len(content) > 100000:
-                    content = content[:100000] + "\n\n... [内容过长，已截断]"
+                    content = content[:100000] + f"\n\n... [内容过长，已截断]"
 
                 return f"[PDF文档] {os.path.basename(path)}\n总页数: {total_pages}\n\n{content}"
             except Exception as e:
@@ -353,7 +354,7 @@ class EnhancedToolsPlugin(Plugin):
         def _create():
             try:
                 from docx import Document
-                from docx.shared import Inches, Pt
+                from docx.shared import Pt, Inches
             except ImportError:
                 return "[错误] python-docx 未安装"
 
@@ -408,6 +409,7 @@ class EnhancedToolsPlugin(Plugin):
     )
     async def date_time(self, format: str = "%Y-%m-%d %H:%M:%S", timezone: str = None) -> str:
         """获取当前日期和时间"""
+        from datetime import datetime, timezone as tz
         if timezone:
             try:
                 import pytz
@@ -498,7 +500,7 @@ class EnhancedToolsPlugin(Plugin):
                     elif isinstance(result, dict):
                         result = result.get(part)
                     else:
-                        return "[错误] 无法查询: 当前值不是对象或数组"
+                        return f"[错误] 无法查询: 当前值不是对象或数组"
 
                     if result is None:
                         return f"[结果] 路径 '{query}' 不存在"
@@ -550,7 +552,7 @@ class EnhancedToolsPlugin(Plugin):
                 return f"[错误] 文件不存在: {path}"
 
             try:
-                with open(path, encoding='utf-8') as f:
+                with open(path, 'r', encoding='utf-8') as f:
                     data = yaml.safe_load(f)
                 output = json.dumps(data, ensure_ascii=False, indent=2)
                 if len(output) > 10000:
@@ -709,8 +711,8 @@ class EnhancedToolsPlugin(Plugin):
     async def text_transform(self, text: str, operation: str) -> str:
         """对文本进行各种转换操作"""
         import base64
-        from html.parser import HTMLParser
         from urllib.parse import quote, unquote
+        from html.parser import HTMLParser
 
         class HTMLStripper(HTMLParser):
             def __init__(self):
@@ -845,7 +847,7 @@ class EnhancedToolsPlugin(Plugin):
                         continue
                     fpath = os.path.join(root, fname)
                     try:
-                        with open(fpath, encoding='utf-8', errors='ignore') as f:
+                        with open(fpath, 'r', encoding='utf-8', errors='ignore') as f:
                             for line_num, line in enumerate(f, 1):
                                 if pattern.search(line):
                                     results.append({
@@ -1210,7 +1212,7 @@ class EnhancedToolsPlugin(Plugin):
     async def cleanup(self):
         logger.info("EnhancedToolsPlugin cleanup")
 
-    async def health_check(self) -> dict[str, Any]:
+    async def health_check(self) -> Dict[str, Any]:
         return {"healthy": True, "message": f"EnhancedToolsPlugin v{self.version} running"}
 
 

@@ -1,18 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
+import { t } from '../lib/i18n';
 import {
   getPlugins,
   getTools,
   executeTool,
   reloadPlugin,
   healthCheckPlugins,
-  getMarketplacePlugins,
-  installMarketplacePlugin,
   type Plugin,
   type ToolInfo,
   type HealthCheckResult,
-  type MarketplacePlugin,
 } from '../api/plugins';
 import toast from 'react-hot-toast';
 
@@ -39,10 +37,7 @@ export default function Plugins() {
   const [plugins, setPlugins] = useState<Plugin[]>([]);
   const [tools, setTools] = useState<ToolInfo[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'plugins' | 'tools' | 'marketplace'>('plugins');
-  const [marketplacePlugins, setMarketplacePlugins] = useState<MarketplacePlugin[]>([]);
-  const [marketplaceLoading, setMarketplaceLoading] = useState(false);
-  const [installingId, setInstallingId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'plugins' | 'tools'>('plugins');
   const [healthStatus, setHealthStatus] = useState<HealthCheckResult | null>(null);
   const [testingTool, setTestingTool] = useState<string | null>(null);
   const [testResult, setTestResult] = useState<string | null>(null);
@@ -67,40 +62,6 @@ export default function Plugins() {
       setLoading(false);
     }
   };
-
-  const loadMarketplace = async () => {
-    setMarketplaceLoading(true);
-    try {
-      const res = await getMarketplacePlugins({ page_size: 50 });
-      setMarketplacePlugins(res.plugins || []);
-    } catch (error) {
-      console.error('Failed to load marketplace:', error);
-      toast.error('加载市场插件失败');
-    } finally {
-      setMarketplaceLoading(false);
-    }
-  };
-
-  const handleInstall = async (pluginId: string, pluginName: string) => {
-    setInstallingId(pluginId);
-    try {
-      await installMarketplacePlugin(pluginId);
-      toast.success(`插件 "${pluginName}" 安装成功`);
-      loadMarketplace();
-      loadData();
-    } catch (error: any) {
-      toast.error(`安装失败: ${error.response?.data?.detail || error.message}`);
-    } finally {
-      setInstallingId(null);
-    }
-  };
-
-  // 切换到市场 tab 时加载数据
-  useEffect(() => {
-    if (activeTab === 'marketplace' && marketplacePlugins.length === 0) {
-      loadMarketplace();
-    }
-  }, [activeTab]);
 
   const handleReload = async (pluginName: string) => {
     try {
@@ -170,13 +131,13 @@ export default function Plugins() {
           className="flex items-center gap-1.5 mb-4 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors hover:bg-gray-100 text-gray-500 hover:text-gray-900"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>返回</span>
+          <span>{t('common.back')}</span>
         </button>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">插件管理</h1>
+            <h1 className="text-3xl font-bold text-gray-900">{t('plugins.title')}</h1>
             <p className="mt-2 text-gray-600">
-              管理已安装的插件和工具，扩展Fugue的功能
+              {t('plugins.subtitle')}
             </p>
           </div>
           <div className="flex gap-3">
@@ -184,13 +145,13 @@ export default function Plugins() {
               onClick={handleHealthCheck}
               className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
             >
-              🏥 健康检查
+              🏥 {t('plugins.health_check')}
             </button>
             <button
               onClick={loadData}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
-              🔄 刷新
+              🔄 {t('common.refresh')}
             </button>
           </div>
         </div>
@@ -225,7 +186,7 @@ export default function Plugins() {
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
-            插件 ({plugins.length})
+            {t('plugins.tab_plugins')} ({plugins.length})
           </button>
           <button
             onClick={() => setActiveTab('tools')}
@@ -235,17 +196,7 @@ export default function Plugins() {
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
-            工具 ({tools.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('marketplace')}
-            className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-              activeTab === 'marketplace'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            市场
+            {t('plugins.tab_tools')} ({tools.length})
           </button>
         </nav>
       </div>
@@ -253,20 +204,12 @@ export default function Plugins() {
       {/* Content */}
       {activeTab === 'plugins' ? (
         <PluginsList plugins={plugins} onReload={handleReload} />
-      ) : activeTab === 'tools' ? (
+      ) : (
         <ToolsList
           tools={tools}
           onTest={handleTestTool}
           testingTool={testingTool}
           testResult={testResult}
-        />
-      ) : (
-        <MarketplaceList
-          plugins={marketplacePlugins}
-          loading={marketplaceLoading}
-          installingId={installingId}
-          onInstall={handleInstall}
-          onRefresh={loadMarketplace}
         />
       )}
 
@@ -312,9 +255,9 @@ function PluginsList({
     return (
       <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
         <div className="text-6xl mb-4">🧩</div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">暂无插件</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('plugins.no_plugins')}</h3>
         <p className="text-gray-600">
-          还没有加载任何插件。插件可以扩展Fugue的功能。
+          {t('plugins.no_plugins_desc')}
         </p>
       </div>
     );
@@ -385,9 +328,9 @@ function ToolsList({
     return (
       <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
         <div className="text-6xl mb-4">🔧</div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">暂无工具</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('plugins.no_tools')}</h3>
         <p className="text-gray-600">
-          还没有可用的工具。安装插件后会自动注册工具。
+          {t('plugins.no_tools_desc')}
         </p>
       </div>
     );
@@ -451,91 +394,3 @@ function ToolsList({
   );
 }
 
-function MarketplaceList({
-  plugins,
-  loading,
-  installingId,
-  onInstall,
-  onRefresh,
-}: {
-  plugins: MarketplacePlugin[];
-  loading: boolean;
-  installingId: string | null;
-  onInstall: (id: string, name: string) => void;
-  onRefresh: () => void;
-}) {
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
-  if (plugins.length === 0) {
-    return (
-      <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
-        <div className="text-6xl mb-4">🏪</div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">市场暂无插件</h3>
-        <p className="text-gray-600 mb-4">
-          还没有发布到市场的插件。发布您的插件让更多人使用！
-        </p>
-        <button
-          onClick={onRefresh}
-          className="px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors text-sm"
-        >
-          刷新
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {plugins.map((plugin) => (
-        <div
-          key={plugin.id}
-          className="bg-white rounded-xl border border-gray-200 hover:shadow-lg transition-shadow"
-        >
-          <div className="p-6">
-            <div className="flex items-start justify-between mb-3">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">{plugin.display_name}</h3>
-                <p className="text-sm text-gray-500">v{plugin.current_version} · {plugin.author}</p>
-              </div>
-              <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium">
-                {plugin.category}
-              </span>
-            </div>
-
-            <p className="text-sm text-gray-600 mb-4 line-clamp-2">{plugin.description}</p>
-
-            <div className="flex items-center gap-4 mb-4 text-xs text-gray-500">
-              <span>⬇️ {plugin.download_count}</span>
-              <span>⭐ {plugin.average_rating?.toFixed(1) || 'N/A'}</span>
-              <span>🔧 {plugin.tools_list?.length || 0} 工具</span>
-            </div>
-
-            {plugin.tags && plugin.tags.length > 0 && (
-              <div className="flex flex-wrap gap-1 mb-4">
-                {plugin.tags.slice(0, 3).map((tag) => (
-                  <span key={tag} className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            )}
-
-            <button
-              onClick={() => onInstall(plugin.id, plugin.display_name)}
-              disabled={installingId === plugin.id}
-              className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {installingId === plugin.id ? '安装中...' : '安装'}
-            </button>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}

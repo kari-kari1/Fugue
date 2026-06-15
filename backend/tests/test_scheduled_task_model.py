@@ -1,5 +1,6 @@
 """ScheduledTask模型测试"""
 
+import pytest
 from app.models.scheduled_task import ScheduledTask
 
 

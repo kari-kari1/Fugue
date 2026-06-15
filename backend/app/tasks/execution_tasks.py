@@ -1,12 +1,12 @@
 import asyncio
-import logging
-
-from sqlalchemy import select
-
-from app.core.database import db_session_manager
+from celery import Task
+from app.tasks.celery_app import celery_app
+from app.core.database import db_session_manager, get_session_factory_for_celery
 from app.engine.executor import ExecutionEngine
 from app.models.execution import Execution, ExecutionStatus
-from app.tasks.celery_app import celery_app
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+import logging
 
 logger = logging.getLogger(__name__)
 

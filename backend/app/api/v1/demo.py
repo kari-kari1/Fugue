@@ -3,9 +3,9 @@
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select
 
-from app.api.deps import CurrentSuperUser, DatabaseSession
-from app.models.agent import Agent
+from app.api.deps import DatabaseSession, CurrentUser, CurrentSuperUser
 from app.models.crew import Crew, ProcessType
+from app.models.agent import Agent
 from app.models.task import Task
 from app.services.template_seeder import seed_templates
 

@@ -2,12 +2,12 @@
 
 import json
 import logging
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
+from typing import Optional
 
-from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
-
-from app.core.database import db_session_manager
-from app.core.security import decode_access_token
 from app.core.websocket_manager import ws_manager
+from app.core.security import decode_access_token
+from app.core.database import db_session_manager
 from app.models.execution import Execution
 
 logger = logging.getLogger(__name__)
@@ -19,7 +19,7 @@ router = APIRouter()
 async def websocket_execution_monitor(
     websocket: WebSocket,
     execution_id: str,
-    token: str | None = Query(None),
+    token: Optional[str] = Query(None),
 ):
     """
     WebSocket端点：监控执行状态

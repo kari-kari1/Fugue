@@ -5,6 +5,7 @@ import logging
 import os
 import re
 import shutil
+from typing import List, Optional, Dict
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +16,7 @@ class WorktreeManager:
     提供隔离的 Git 工作目录，防止多个 Agent 并行执行时的文件冲突。
     """
 
-    def __init__(self, base_worktree_dir: str | None = None) -> None:
+    def __init__(self, base_worktree_dir: Optional[str] = None) -> None:
         self.base_worktree_dir = base_worktree_dir or os.path.join(
             os.path.expanduser("~"), ".fugue", "worktrees"
         )
@@ -39,7 +40,7 @@ class WorktreeManager:
             raise ValueError("Worktree path escapes base directory")
 
     async def _run_git(
-        self, args: list[str], cwd: str
+        self, args: List[str], cwd: str
     ) -> tuple[int, str, str]:
         """执行 git 命令并返回 (returncode, stdout, stderr)"""
         proc = await asyncio.create_subprocess_exec(
@@ -57,7 +58,7 @@ class WorktreeManager:
         self,
         repo_path: str,
         worktree_name: str,
-        branch_name: str | None = None,
+        branch_name: Optional[str] = None,
     ) -> str:
         """创建一个新的 worktree
 
@@ -175,7 +176,7 @@ class WorktreeManager:
         )
         return True
 
-    async def list_worktrees(self, repo_path: str) -> list[dict[str, str]]:
+    async def list_worktrees(self, repo_path: str) -> List[Dict[str, str]]:
         """列出主仓库下的所有 worktrees
 
         Args:
@@ -194,10 +195,10 @@ class WorktreeManager:
         return self._parse_porcelain(stdout)
 
     @staticmethod
-    def _parse_porcelain(output: str) -> list[dict[str, str]]:
+    def _parse_porcelain(output: str) -> List[Dict[str, str]]:
         """解析 git worktree list --porcelain 输出"""
-        worktrees: list[dict[str, str]] = []
-        current: dict[str, str] = {}
+        worktrees: List[Dict[str, str]] = []
+        current: Dict[str, str] = {}
 
         for line in output.strip().splitlines():
             if not line.strip():
@@ -219,13 +220,13 @@ class WorktreeManager:
         return worktrees
 
     @staticmethod
-    def _find_main_repo(worktree_path: str, git_file: str) -> str | None:
+    def _find_main_repo(worktree_path: str, git_file: str) -> Optional[str]:
         """从 .git 文件中解析主仓库路径"""
         if not os.path.isfile(git_file):
             return None
 
         try:
-            with open(git_file, encoding="utf-8") as f:
+            with open(git_file, "r", encoding="utf-8") as f:
                 content = f.read().strip()
             # .git 文件格式: gitdir: /path/to/main-repo/.git/worktrees/<name>
             if content.startswith("gitdir: "):
@@ -240,7 +241,7 @@ class WorktreeManager:
 
 
 # 全局单例
-_manager: WorktreeManager | None = None
+_manager: Optional[WorktreeManager] = None
 
 
 def get_worktree_manager() -> WorktreeManager:

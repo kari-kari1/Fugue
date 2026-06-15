@@ -1,6 +1,6 @@
 """定时任务数据库模型"""
 
-from sqlalchemy import JSON, Boolean, Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy import Column, String, Boolean, Integer, DateTime, JSON, ForeignKey
 
 from app.models.base import BaseModel
 

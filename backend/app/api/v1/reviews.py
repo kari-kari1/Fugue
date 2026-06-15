@@ -1,28 +1,28 @@
 """人工审核 API 端点"""
 
-
+from typing import Optional
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel
 from sqlalchemy import select
+from pydantic import BaseModel
 
-from app.api.deps import CurrentUser, DatabaseSession
-from app.engine.executor import ExecutionEngine
-from app.models.execution import Execution
+from app.api.deps import DatabaseSession, CurrentUser
 from app.models.human_review import HumanReviewRequest
+from app.models.execution import Execution
+from app.engine.executor import ExecutionEngine
 
 router = APIRouter()
 
 
 class ReviewAction(BaseModel):
-    result: dict | None = None
-    comment: str | None = None
+    result: Optional[dict] = None
+    comment: Optional[str] = None
 
 
 @router.get("/pending")
 async def get_pending_reviews(
     db: DatabaseSession,
     current_user: CurrentUser,
-    execution_id: str | None = Query(None, description="按执行ID过滤"),
+    execution_id: Optional[str] = Query(None, description="按执行ID过滤"),
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
 ):

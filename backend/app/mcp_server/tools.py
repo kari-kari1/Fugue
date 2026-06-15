@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import Any, Dict, Optional
 
 from mcp.server.fastmcp import FastMCP
 
@@ -17,9 +17,9 @@ def register_tools(server: FastMCP) -> None:
     @server.tool()
     async def execute_workflow(
         workflow_id: str,
-        inputs: dict[str, Any] | None = None,
-        llm_api_keys: dict[str, str] | None = None,
-        llm_base_urls: dict[str, str] | None = None,
+        inputs: Optional[Dict[str, Any]] = None,
+        llm_api_keys: Optional[Dict[str, str]] = None,
+        llm_base_urls: Optional[Dict[str, str]] = None,
     ) -> str:
         """Start execution of a workflow by its ID.
 
@@ -46,8 +46,8 @@ def register_tools(server: FastMCP) -> None:
                 status=ExecutionStatus.PENDING,
                 inputs=inputs or {},
             )
-            # Pass LLM credentials through to the execution record
-            execution.llm_api_keys = llm_api_keys or {}
+            # Pass LLM credentials through to the execution record (encrypted)
+            execution.set_api_keys(llm_api_keys or {})
             execution.llm_base_urls = llm_base_urls or {}
             session.add(execution)
             await session.commit()
@@ -90,7 +90,7 @@ def register_tools(server: FastMCP) -> None:
     async def list_workflows(
         limit: int = 20,
         offset: int = 0,
-        user_id: str | None = None,
+        user_id: Optional[str] = None,
     ) -> str:
         """List available workflows with pagination.
 
@@ -103,7 +103,6 @@ def register_tools(server: FastMCP) -> None:
             JSON string with list of workflows and pagination info.
         """
         from sqlalchemy import select
-
         from app.core.database import db_session_manager
         from app.models.crew import Crew
 
@@ -169,7 +168,6 @@ def register_tools(server: FastMCP) -> None:
             limit: 返回数量上限（默认 20）
         """
         import json
-
         from app.models.execution import TaskExecution, TaskExecutionStatus
         async with db_session_manager.get_session() as db:
             result = await db.execute(

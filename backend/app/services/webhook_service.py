@@ -1,16 +1,16 @@
 """Webhook服务 — 处理执行完成、失败等事件的回调通知（数据库持久化版本）"""
 
-import asyncio
-import hashlib
 import hmac
+import hashlib
 import json
 import logging
+import asyncio
+from typing import Dict, Any, List, Optional
 from datetime import datetime
 from enum import Enum
-from typing import Any
 
 import httpx
-from sqlalchemy import delete, select
+from sqlalchemy import select, delete
 
 from app.core.database import AsyncSessionLocal
 from app.models.webhook import Webhook
@@ -39,9 +39,9 @@ class WebhookService:
         self,
         user_id: str,
         url: str,
-        events: list[str],
-        secret: str | None = None,
-    ) -> dict[str, Any]:
+        events: List[str],
+        secret: Optional[str] = None,
+    ) -> Dict[str, Any]:
         """注册Webhook
 
         Args:
@@ -87,7 +87,7 @@ class WebhookService:
         self,
         user_id: str,
         event_type: str,
-        payload: dict[str, Any],
+        payload: Dict[str, Any],
     ):
         """触发事件并通知所有订阅者
 
@@ -126,7 +126,7 @@ class WebhookService:
         self,
         webhook: Webhook,
         event_type: str,
-        payload: dict[str, Any],
+        payload: Dict[str, Any],
     ):
         """发送Webhook通知"""
         webhook_id = webhook.id
@@ -186,7 +186,7 @@ class WebhookService:
 
                 await db.commit()
 
-    async def get_user_webhooks(self, user_id: str) -> list[dict[str, Any]]:
+    async def get_user_webhooks(self, user_id: str) -> List[Dict[str, Any]]:
         """获取用户的所有Webhook"""
         async with self._session_factory() as db:
             result = await db.execute(
@@ -196,7 +196,7 @@ class WebhookService:
 
         return [wh.to_dict() for wh in webhooks]
 
-    async def test_webhook(self, webhook_id: str, user_id: str) -> dict[str, Any]:
+    async def test_webhook(self, webhook_id: str, user_id: str) -> Dict[str, Any]:
         """测试Webhook"""
         async with self._session_factory() as db:
             result = await db.execute(
@@ -226,7 +226,7 @@ class WebhookService:
 
 
 # 全局单例
-_webhook_service: WebhookService | None = None
+_webhook_service: Optional[WebhookService] = None
 
 
 def get_webhook_service() -> WebhookService:

@@ -1,7 +1,6 @@
 """执行引擎测试"""
-import asyncio
-
 import pytest
+import asyncio
 from httpx import AsyncClient
 
 

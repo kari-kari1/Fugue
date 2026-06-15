@@ -1,7 +1,9 @@
 """插件管理器 — 管理插件的生命周期和工具注册"""
 
 import logging
-from typing import Any
+from typing import Dict, List, Optional, Type, Any
+from pathlib import Path
+import asyncio
 
 from .base import Plugin, ToolMeta
 
@@ -19,21 +21,21 @@ class PluginManager:
     """
 
     def __init__(self):
-        self._plugins: dict[str, Plugin] = {}  # plugin_name -> Plugin instance
-        self._tools_index: dict[str, ToolMeta] = {}  # tool_name -> ToolMeta
-        self._plugin_classes: dict[str, type[Plugin]] = {}  # plugin_name -> Plugin class
+        self._plugins: Dict[str, Plugin] = {}  # plugin_name -> Plugin instance
+        self._tools_index: Dict[str, ToolMeta] = {}  # tool_name -> ToolMeta
+        self._plugin_classes: Dict[str, Type[Plugin]] = {}  # plugin_name -> Plugin class
 
     @property
-    def plugins(self) -> dict[str, Plugin]:
+    def plugins(self) -> Dict[str, Plugin]:
         """获取所有已加载的插件"""
         return self._plugins.copy()
 
     @property
-    def tools(self) -> dict[str, ToolMeta]:
+    def tools(self) -> Dict[str, ToolMeta]:
         """获取所有已注册的工具"""
         return self._tools_index.copy()
 
-    def register_plugin_class(self, plugin_class: type[Plugin]):
+    def register_plugin_class(self, plugin_class: Type[Plugin]):
         """注册插件类（不立即实例化）
 
         Args:
@@ -55,7 +57,7 @@ class PluginManager:
     async def load_plugin(
         self,
         plugin_name: str,
-        config: dict[str, Any] | None = None,
+        config: Optional[Dict[str, Any]] = None,
     ) -> Plugin:
         """加载并初始化插件
 
@@ -157,18 +159,18 @@ class PluginManager:
             except Exception as e:
                 logger.error(f"Failed to unload plugin '{plugin_name}': {e}")
 
-    def get_plugin(self, plugin_name: str) -> Plugin | None:
+    def get_plugin(self, plugin_name: str) -> Optional[Plugin]:
         """获取已加载的插件实例"""
         return self._plugins.get(plugin_name)
 
-    def get_tool(self, tool_name: str) -> ToolMeta | None:
+    def get_tool(self, tool_name: str) -> Optional[ToolMeta]:
         """获取已注册的工具"""
         return self._tools_index.get(tool_name)
 
     async def execute_tool(
         self,
         tool_name: str,
-        arguments: dict[str, Any],
+        arguments: Dict[str, Any],
     ) -> str:
         """执行工具
 
@@ -198,7 +200,7 @@ class PluginManager:
 
         return await plugin.execute_tool(tool_name, arguments)
 
-    async def health_check_all(self) -> dict[str, dict[str, Any]]:
+    async def health_check_all(self) -> Dict[str, Dict[str, Any]]:
         """对所有插件执行健康检查"""
         results = {}
         for plugin_name, plugin in self._plugins.items():
@@ -212,11 +214,11 @@ class PluginManager:
                 }
         return results
 
-    def list_plugins(self) -> list[dict[str, Any]]:
+    def list_plugins(self) -> List[Dict[str, Any]]:
         """列出所有已加载的插件"""
         return [plugin.to_dict() for plugin in self._plugins.values()]
 
-    def list_tools(self) -> list[dict[str, Any]]:
+    def list_tools(self) -> List[Dict[str, Any]]:
         """列出所有已注册的工具"""
         tools = []
         for tool_name, tool_meta in self._tools_index.items():
@@ -236,14 +238,14 @@ class PluginManager:
             })
         return tools
 
-    def get_tools_by_category(self, category: str) -> list[ToolMeta]:
+    def get_tools_by_category(self, category: str) -> List[ToolMeta]:
         """按分类获取工具"""
         return [
             tool for tool in self._tools_index.values()
             if tool.category == category
         ]
 
-    def get_tools_by_permission(self, permission: str) -> list[ToolMeta]:
+    def get_tools_by_permission(self, permission: str) -> List[ToolMeta]:
         """按权限等级获取工具"""
         return [
             tool for tool in self._tools_index.values()
@@ -252,9 +254,9 @@ class PluginManager:
 
     def get_openai_tools_schema(
         self,
-        categories: list[str] | None = None,
-        permissions: list[str] | None = None,
-    ) -> list[dict[str, Any]]:
+        categories: Optional[List[str]] = None,
+        permissions: Optional[List[str]] = None,
+    ) -> List[Dict[str, Any]]:
         """获取工具的OpenAI格式Schema（支持过滤）"""
         tools = self._tools_index.values()
 
@@ -267,9 +269,9 @@ class PluginManager:
 
     def get_anthropic_tools_schema(
         self,
-        categories: list[str] | None = None,
-        permissions: list[str] | None = None,
-    ) -> list[dict[str, Any]]:
+        categories: Optional[List[str]] = None,
+        permissions: Optional[List[str]] = None,
+    ) -> List[Dict[str, Any]]:
         """获取工具的Anthropic格式Schema（支持过滤）"""
         tools = self._tools_index.values()
 
@@ -282,7 +284,7 @@ class PluginManager:
 
 
 # 全局插件管理器实例
-_plugin_manager: PluginManager | None = None
+_plugin_manager: Optional[PluginManager] = None
 
 
 def get_plugin_manager() -> PluginManager:

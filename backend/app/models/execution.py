@@ -1,9 +1,7 @@
 """Execution（执行实例）模型"""
 
 import enum
-
-from sqlalchemy import JSON, Column, DateTime, Float, ForeignKey, Integer, String, Text
-from sqlalchemy import Enum as SQLEnum
+from sqlalchemy import Column, String, Text, Integer, Float, ForeignKey, JSON, Enum as SQLEnum, DateTime
 from sqlalchemy.orm import relationship
 
 from app.models.base import BaseModel
@@ -57,6 +55,36 @@ class Execution(BaseModel):
     # 存储 LLM 配置（用于迭代优化时复用）
     llm_api_keys = Column(JSON, nullable=True, default=dict)
     llm_base_urls = Column(JSON, nullable=True, default=dict)
+
+    def set_api_keys(self, keys: dict):
+        """加密存储 API 密钥"""
+        if not keys:
+            self.llm_api_keys = {}
+            return
+        from app.core.encryption import encrypt
+        encrypted = {}
+        for provider, key in keys.items():
+            if key and isinstance(key, str):
+                encrypted[provider] = encrypt(key)
+            else:
+                encrypted[provider] = key
+        self.llm_api_keys = encrypted
+
+    def get_api_keys(self) -> dict:
+        """解密读取 API 密钥"""
+        if not self.llm_api_keys:
+            return {}
+        from app.core.encryption import decrypt, is_encrypted
+        decrypted = {}
+        for provider, key in self.llm_api_keys.items():
+            if key and isinstance(key, str) and is_encrypted(key):
+                try:
+                    decrypted[provider] = decrypt(key)
+                except Exception:
+                    decrypted[provider] = key
+            else:
+                decrypted[provider] = key
+        return decrypted
 
     # 执行轨迹
     trace = Column(JSON, default=list)

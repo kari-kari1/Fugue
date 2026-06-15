@@ -1,10 +1,8 @@
 """Iteration Schema单元测试"""
 
-from datetime import datetime
-
 import pytest
+from datetime import datetime
 from pydantic import ValidationError
-
 from app.schemas.iteration import IterationCreate, IterationResponse
 
 

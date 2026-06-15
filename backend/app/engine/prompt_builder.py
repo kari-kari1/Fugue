@@ -1,10 +1,21 @@
 """Prompt 构建器 — 组装发送给 LLM 的消息"""
 
 import logging
-
+from typing import Dict, Any, List, Optional
 from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
+
+
+def _sanitize_user_input(text: str) -> str:
+    """基本的 prompt 注入防护：用明确的分隔符包裹用户输入。
+
+    不做过度转义（会破坏正常内容），而是让 LLM 能区分系统指令和用户数据。
+    """
+    if not text:
+        return text
+    # 标记用户输入的边界，让 LLM 知道这是数据而非指令
+    return f"--- 用户提供的内容开始 ---\n{text}\n--- 用户提供的内容结束 ---"
 
 
 def _build_tool_capability_prompt(workspace_dir: str = None) -> str:
@@ -54,6 +65,7 @@ def _build_tool_capability_prompt(workspace_dir: str = None) -> str:
         "code_execute": "- **code_execute**: 执行代码。参数：language(python/javascript), code(代码)。在沙箱中执行代码。",
         "text_analysis": "- **text_analysis**: 文本分析。参数：text(文本), analysis_type(summarize/sentiment/keywords/classify/translate), target_language(翻译目标语言)。",
         "image_generation": "- **image_generation**: 生成图片。参数：prompt(描述), size(尺寸), style(风格)。使用DALL-E生成图片。",
+        "pdf_create": "- **pdf_create**: 创建 PDF 文档。参数：path(保存路径), title(标题), content(文本内容)。将文本/计算结果保存为 PDF 文件。**需要保存 PDF 时必须使用此工具**。",
     }
 
     # 收集可用工具（插件工具 + 内置工具）
@@ -79,7 +91,7 @@ def _build_tool_capability_prompt(workspace_dir: str = None) -> str:
     # 按分类组织
     categories = {
         "📁 文件操作": ["fs_read", "fs_write", "fs_list", "file_read", "file_search", "file_grep", "zip_list"],
-        "📄 文档处理": ["docx_read", "docx_create", "xlsx_read", "csv_analyze", "csv_create", "pdf_read"],
+        "📄 文档处理": ["docx_read", "docx_create", "xlsx_read", "csv_analyze", "csv_create", "pdf_read", "pdf_create"],
         "🔧 数据处理": ["json_query", "yaml_parse", "table_format", "sqlite_query"],
         "✏️ 文本处理": ["regex_extract", "text_diff", "text_transform", "word_frequency", "text_analysis"],
         "🌐 网络与Web": ["web_search", "api_call", "url_parse", "html_extract", "markdown_render"],
@@ -126,7 +138,7 @@ def _build_tool_capability_prompt(workspace_dir: str = None) -> str:
     return "\n".join(parts)
 
 
-def build_messages(agent, task, context_parts: list[str], workspace_dir: str = None) -> list[dict[str, str]]:
+def build_messages(agent, task, context_parts: List[str], workspace_dir: str = None) -> List[Dict[str, str]]:
     """构建 system + user 消息。
 
     Args:
@@ -148,11 +160,11 @@ def build_messages(agent, task, context_parts: list[str], workspace_dir: str = N
 
     # 注入工作空间信息
     if workspace_dir:
-        system += "\n\n## ⚠️ 工作空间（强制）\n"
+        system += f"\n\n## ⚠️ 工作空间（强制）\n"
         system += f"你的工作空间目录是：**{workspace_dir}**\n"
-        system += "所有文件的读取和写入必须在此目录下进行。\n"
+        system += f"所有文件的读取和写入必须在此目录下进行。\n"
         system += f"保存文件时，路径必须以 {workspace_dir} 开头，例如：{workspace_dir}/output.docx\n"
-        system += "禁止在工作空间以外的任何路径创建或修改文件。\n"
+        system += f"禁止在工作空间以外的任何路径创建或修改文件。\n"
 
     # 注入常用路径提示（减少无效搜索）
     import os
@@ -183,9 +195,12 @@ def build_messages(agent, task, context_parts: list[str], workspace_dir: str = N
     # 注入工具能力说明
     system += _build_tool_capability_prompt(workspace_dir=workspace_dir)
 
-    user_msg = f"请执行以下任务：\n\n**{task.name}**\n\n{task.description}"
+    # 用分隔符包裹用户输入，防止 prompt 注入
+    safe_name = _sanitize_user_input(task.name)
+    safe_desc = _sanitize_user_input(task.description or "")
+    user_msg = f"请执行以下任务：\n\n**{safe_name}**\n\n{safe_desc}"
     if task.expected_output:
-        user_msg += f"\n\n期望的输出格式：{task.expected_output}"
+        user_msg += f"\n\n期望的输出格式：{_sanitize_user_input(task.expected_output)}"
     if context_parts:
         user_msg += "\n\n--- 上下文信息 ---\n" + "\n\n".join(context_parts)
 

@@ -10,11 +10,11 @@
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from app.models.execution import Execution, ExecutionStatus
-from app.models.iteration import Iteration, IterationStatus
+from app.models.iteration import Iteration, IterationStatus, IterationMode
 from app.models.user import User
 
 
@@ -198,9 +198,7 @@ async def test_iteration_status_update_after_processing(
     assert len(iterations) == 1
     final_data = iterations[0]
     assert final_data["status"] == IterationStatus.COMPLETED.value
-    # refined_output 可能被实际执行覆盖（演示模式），只验证存在
-    assert final_data["refined_output"] is not None
-    assert len(final_data["refined_output"]) > 0
+    assert final_data["refined_output"] == "迭代完成的结果"
     assert final_data["tokens_used"] == 150
     assert final_data["cost_usd"] == 0.03
 

@@ -1,14 +1,16 @@
 # backend/app/services/export_service.py
 
-from datetime import UTC, datetime
-from typing import Any
+from typing import Dict, Any
+from datetime import datetime, timezone
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.crew import Crew
-from app.models.execution import Execution
+from app.models.agent import Agent
+from app.models.task import Task
+from app.models.execution import Execution, TaskExecution
 
 
 class ExportService:
@@ -53,7 +55,7 @@ class ExportService:
         else:
             return f"```\n{text}\n```"
 
-    async def export_crew_json(self, crew_id: str) -> dict[str, Any]:
+    async def export_crew_json(self, crew_id: str) -> Dict[str, Any]:
         """导出工作流为JSON"""
         result = await self.db.execute(
             select(Crew)
@@ -73,7 +75,7 @@ class ExportService:
 
         return {
             "version": "1.0",
-            "exported_at": datetime.now(UTC).isoformat(),
+            "exported_at": datetime.now(timezone.utc).isoformat(),
             "crew": {
                 "name": crew.name,
                 "description": crew.description,
@@ -170,7 +172,7 @@ class ExportService:
 
         return md
 
-    async def export_execution_json(self, execution_id: str) -> dict[str, Any]:
+    async def export_execution_json(self, execution_id: str) -> Dict[str, Any]:
         """导出执行结果为JSON"""
         result = await self.db.execute(
             select(Execution)

@@ -1,21 +1,21 @@
 """任务（Task）相关API"""
 
 import logging
-
+from typing import List
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select
 
-from app.api.deps import CurrentUser, DatabaseSession
-from app.models.crew import Crew
+from app.api.deps import DatabaseSession, CurrentUser
 from app.models.task import Task
-from app.schemas.task import TaskCreate, TaskResponse, TaskUpdate
+from app.models.crew import Crew
+from app.schemas.task import TaskCreate, TaskUpdate, TaskResponse
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
 
-@router.get("/crew/{crew_id}", response_model=list[TaskResponse])
+@router.get("/crew/{crew_id}", response_model=List[TaskResponse])
 async def list_tasks(
     crew_id: str,
     db: DatabaseSession,

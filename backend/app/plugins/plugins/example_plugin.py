@@ -1,10 +1,11 @@
 """示例插件 — 演示如何使用Plugin SDK开发自定义工具"""
 
+import asyncio
 import json
 import logging
 import re
+from typing import Dict, Any, List
 from datetime import datetime
-from typing import Any
 
 from app.plugins.base import Plugin, Tool
 
@@ -258,7 +259,7 @@ class ExamplePlugin(Plugin):
         """插件清理"""
         logger.info(f"ExamplePlugin v{self.version} cleanup")
 
-    async def health_check(self) -> dict[str, Any]:
+    async def health_check(self) -> Dict[str, Any]:
         """健康检查"""
         return {
             "healthy": True,

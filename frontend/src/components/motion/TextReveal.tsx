@@ -10,15 +10,6 @@ interface TextRevealProps {
   delay?: number;
 }
 
-const MotionComponents = {
-  h1: motion.h1,
-  h2: motion.h2,
-  h3: motion.h3,
-  p: motion.p,
-  span: motion.span,
-  div: motion.div,
-} as const;
-
 export const TextReveal: React.FC<TextRevealProps> = ({
   children,
   as = 'h1',
@@ -26,7 +17,7 @@ export const TextReveal: React.FC<TextRevealProps> = ({
   style,
   delay = 0,
 }) => {
-  const Component = MotionComponents[as] || MotionComponents.h1;
+  const Component = motion.create(as);
 
   return (
     <Component

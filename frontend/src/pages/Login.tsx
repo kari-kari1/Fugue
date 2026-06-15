@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import { useAuthStore } from '../stores/authStore';
 import { hasConfiguredKeys } from '../lib/llmKeys';
+import { t } from '../lib/i18n';
 import { StaggerList, StaggerItem } from '../components/motion/StaggerList';
 
 /* ===== Hero Cycling Text ===== */
@@ -153,7 +154,6 @@ const Login = () => {
     try {
       await login(email, password);
       toast.success('登录成功');
-      // 首次运行无 API Key 时跳转引导页
       navigate(hasConfiguredKeys() ? '/' : '/onboarding');
     } catch (error: unknown) {
       const axiosError = error as { response?: { data?: { detail?: string | Array<{ msg?: string }> | { msg?: string; message?: string } } } };
@@ -321,7 +321,7 @@ const Login = () => {
                       <StaggerItem>
                         <div style={{ marginBottom: 16 }}>
                           <input
-                            type="email" placeholder="Email" required autoComplete="email"
+                            type="email" placeholder={t('login.email')} required autoComplete="email"
                             value={email} onChange={(e) => setEmail(e.target.value)}
                             style={{
                               width: '100%', height: 48,
@@ -341,7 +341,7 @@ const Login = () => {
                       <StaggerItem>
                         <div style={{ marginBottom: 24 }}>
                           <input
-                            type="password" placeholder="Password" required autoComplete="current-password"
+                            type="password" placeholder={t('login.password')} required autoComplete="current-password"
                             value={password} onChange={(e) => setPassword(e.target.value)}
                             style={{
                               width: '100%', height: 48,
@@ -383,17 +383,17 @@ const Login = () => {
                                 transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }}
                                 style={{ display: 'inline-block', width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#FFF', borderRadius: '50%' }}
                               />
-                              Signing in...
+                              {t('login.sign_in')}...
                             </>
-                          ) : 'Sign In'}
+                          ) : t('login.sign_in')}
                         </motion.button>
                       </StaggerItem>
                     </form>
 
                     <StaggerItem>
                       <p style={{ textAlign: 'center', fontSize: 13, color: 'rgba(255,255,255,0.35)', marginTop: 18, fontFamily: '-apple-system, sans-serif' }}>
-                        Don't have an account?{' '}
-                        <Link to="/register" style={{ color: '#2997FF', textDecoration: 'none' }}>Sign up</Link>
+                        {t('login.no_account')}{' '}
+                        <Link to="/register" style={{ color: '#2997FF', textDecoration: 'none' }}>{t('login.register')}</Link>
                       </p>
                     </StaggerItem>
                   </StaggerList>

@@ -5,8 +5,8 @@ Celery集成测试脚本
 测试Celery配置和任务定义是否正确
 """
 
-import os
 import sys
+import os
 
 # 添加项目路径
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -17,7 +17,7 @@ def test_celery_config():
 
     try:
         from app.core.config import settings
-        print("[OK] 配置加载成功")
+        print(f"[OK] 配置加载成功")
         print(f"  - CELERY_BROKER_URL: {settings.CELERY_BROKER_URL}")
         print(f"  - CELERY_RESULT_BACKEND: {settings.CELERY_RESULT_BACKEND}")
         print(f"  - USE_CELERY: {settings.USE_CELERY}")
@@ -34,7 +34,7 @@ def test_celery_app():
 
     try:
         from app.tasks.celery_app import celery_app
-        print("[OK] Celery应用创建成功")
+        print(f"[OK] Celery应用创建成功")
         print(f"  - 应用名称: {celery_app.main}")
         print(f"  - Broker: {celery_app.conf.broker_url}")
         print(f"  - Backend: {celery_app.conf.result_backend}")
@@ -53,8 +53,8 @@ def test_tasks_import():
     print("\n=== 测试任务导入 ===")
 
     try:
-        from app.tasks import cancel_execution, execute_workflow
-        print("[OK] 任务导入成功")
+        from app.tasks import execute_workflow, cancel_execution
+        print(f"[OK] 任务导入成功")
         print(f"  - execute_workflow: {execute_workflow.name}")
         print(f"  - cancel_execution: {cancel_execution.name}")
         return True
@@ -73,13 +73,13 @@ def test_model_changes():
         from app.models.execution import Execution
         # 检查是否有celery_task_id字段
         if hasattr(Execution, 'celery_task_id'):
-            print("[OK] Execution模型包含celery_task_id字段")
+            print(f"[OK] Execution模型包含celery_task_id字段")
             col = Execution.__table__.columns.get('celery_task_id')
             print(f"  - 字段类型: {col.type}")
             print(f"  - 可空: {col.nullable}")
             return True
         else:
-            print("[FAIL] Execution模型缺少celery_task_id字段")
+            print(f"[FAIL] Execution模型缺少celery_task_id字段")
             return False
     except Exception as e:
         print(f"[FAIL] 模型检查失败: {e}")
@@ -94,7 +94,7 @@ def test_api_import():
 
     try:
         from app.api.v1.executions import router
-        print("[OK] 执行API导入成功")
+        print(f"[OK] 执行API导入成功")
         # 检查路由
         routes = [route.path for route in router.routes]
         print(f"  - 路由数量: {len(routes)}")

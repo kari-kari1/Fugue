@@ -1,5 +1,5 @@
+import pytest
 from app.services.event_publisher import EventType
-
 
 def test_iteration_event_types():
     """测试迭代事件类型"""

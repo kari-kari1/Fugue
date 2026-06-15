@@ -1,9 +1,7 @@
 """迭代引擎单元测试"""
 
-from unittest.mock import AsyncMock, MagicMock, patch
-
 import pytest
-
+from unittest.mock import AsyncMock, patch, MagicMock
 from app.engine.executor import ExecutionEngine
 
 

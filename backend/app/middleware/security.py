@@ -3,7 +3,7 @@
 为所有响应添加安全相关 HTTP 头，防止常见 Web 攻击。
 """
 
-from collections.abc import Callable
+from typing import Callable
 
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware

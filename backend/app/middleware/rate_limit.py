@@ -4,14 +4,14 @@
 """
 
 import logging
-from collections.abc import Callable
+from typing import Callable
 
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 
-from app.core.exceptions import ErrorCode
 from app.core.rate_limiter import get_rate_limiter
+from app.core.exceptions import ErrorCode
 
 logger = logging.getLogger(__name__)
 

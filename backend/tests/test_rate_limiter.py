@@ -1,9 +1,8 @@
 """速率限制器单元测试 - 使用mock"""
 
 import time
-from unittest.mock import AsyncMock, MagicMock, patch
-
 import pytest
+from unittest.mock import AsyncMock, patch, MagicMock
 
 from app.core.rate_limiter import RedisRateLimiter, get_rate_limiter
 

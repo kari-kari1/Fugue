@@ -4,6 +4,7 @@
 """
 
 import logging
+from typing import List
 
 from fastapi import APIRouter, HTTPException, status
 
@@ -11,8 +12,9 @@ from app.api.deps import CurrentUser
 from app.schemas.approval import (
     ApprovalAction,
     ApprovalRequestResponse,
+    ApprovalModeConfig,
 )
-from app.services.approval_manager import get_approval_manager
+from app.services.approval_manager import ApprovalMode, get_approval_manager
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["approvals"])
@@ -20,7 +22,7 @@ router = APIRouter(tags=["approvals"])
 
 @router.get(
     "/pending",
-    response_model=list[ApprovalRequestResponse],
+    response_model=List[ApprovalRequestResponse],
     summary="获取待审批请求列表",
 )
 async def list_pending_approvals(current_user: CurrentUser, execution_id: str = None):

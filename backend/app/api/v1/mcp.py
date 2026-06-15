@@ -1,7 +1,7 @@
 """MCP Server 管理 API"""
 
 import logging
-
+from typing import List, Optional
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -17,8 +17,8 @@ class MCPServerConnect(BaseModel):
     """连接 MCP Server 请求"""
     server_id: str = Field(..., min_length=1, max_length=50)
     command: str = Field(..., min_length=1)
-    args: list[str] = Field(default_factory=list)
-    env: dict | None = None
+    args: List[str] = Field(default_factory=list)
+    env: Optional[dict] = None
 
 
 class MCPCallTool(BaseModel):
@@ -49,7 +49,7 @@ async def connect_mcp_server(data: MCPServerConnect, current_user: CurrentUser):
 
 
 @router.get("/tools")
-async def list_mcp_tools(current_user: CurrentUser, server_id: str | None = None):
+async def list_mcp_tools(current_user: CurrentUser, server_id: Optional[str] = None):
     """列出已连接 MCP Server 的工具（需认证）"""
     adapter = get_mcp_adapter()
     all_tools = adapter.get_all_tools()
@@ -83,7 +83,7 @@ async def call_mcp_tool(data: MCPCallTool, current_user: CurrentUser):
 
 
 @router.get("/schemas")
-async def get_mcp_tool_schemas(current_user: CurrentUser, server_id: str | None = None):
+async def get_mcp_tool_schemas(current_user: CurrentUser, server_id: Optional[str] = None):
     """获取 MCP 工具的 OpenAI function calling 格式 schema（需认证）"""
     adapter = get_mcp_adapter()
     schemas = adapter.get_tool_schemas(server_id)
@@ -95,8 +95,8 @@ async def get_mcp_tool_schemas(current_user: CurrentUser, server_id: str | None 
 
 @router.get("/marketplace/presets")
 async def list_mcp_presets(
-    category: str | None = Query(None, description="按分类过滤"),
-    search: str | None = Query(None, description="关键词搜索"),
+    category: Optional[str] = Query(None, description="按分类过滤"),
+    search: Optional[str] = Query(None, description="关键词搜索"),
 ):
     """列出预置的MCP Server配置"""
     marketplace = get_mcp_marketplace()

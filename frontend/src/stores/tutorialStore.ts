@@ -31,7 +31,11 @@ export const useTutorialStore = create<TutorialState>()(
       onboardingCompleted: legacyCompleted,
       currentTipIndex: 0,
       setTutorialMode: (mode) => set({ tutorialMode: mode }),
-      completeOnboarding: () => set({ onboardingCompleted: true }),
+      completeOnboarding: () => {
+        // 同时写入旧版 localStorage key，确保 ProtectedRoute 能同步检测
+        try { localStorage.setItem('onboarding_completed', 'true'); } catch {}
+        set({ onboardingCompleted: true });
+      },
       setTipIndex: (index) => set({ currentTipIndex: index }),
       resetTutorial: () =>
         set({ tutorialMode: false, onboardingCompleted: false, currentTipIndex: 0 }),

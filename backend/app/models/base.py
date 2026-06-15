@@ -1,8 +1,7 @@
 """基础模型类"""
 
 import uuid
-from datetime import UTC, datetime
-
+from datetime import datetime, timezone
 from sqlalchemy import Column, DateTime, String
 
 from app.core.database import Base
@@ -15,7 +14,7 @@ def generate_uuid():
 
 def utcnow():
     """获取当前UTC时间（不带时区信息，兼容TIMESTAMP WITHOUT TIME ZONE）"""
-    return datetime.now(UTC).replace(tzinfo=None)
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 class TimestampMixin:

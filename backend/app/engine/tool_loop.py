@@ -5,17 +5,19 @@
 """
 
 import asyncio
+import json
 import logging
 import re
 from datetime import datetime
+from typing import Dict, List, Tuple
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.engine.llm_provider import LLMResponse, update_provider_health
-from app.engine.message_builder import append_tool_messages
 from app.models.agent import Agent
 from app.models.execution import Execution, ExecutionStatus
 from app.models.task import Task
+from app.engine.llm_provider import LLMResponse, update_provider_health
+from app.engine.message_builder import append_tool_messages
 from app.services.event_publisher import event_publisher
 
 logger = logging.getLogger(__name__)
@@ -33,7 +35,7 @@ async def run_tool_call_loop(
     is_anthropic: bool,
     timeout: int,
     effective_model: str,
-) -> tuple[str, list, int, float]:
+) -> Tuple[str, list, int, float]:
     """运行多轮工具调用循环。
 
     Returns: (final_content, all_tool_calls, total_tokens, total_cost)
@@ -43,6 +45,8 @@ async def run_tool_call_loop(
     total_tokens = 0
     total_cost = 0.0
     final_content = ""
+    # 去重检测：同一工具+参数连续3次则强制终止
+    recent_calls: list = []
 
     for tool_round in range(max_tool_rounds):
         llm_response: LLMResponse = None
@@ -80,7 +84,7 @@ async def run_tool_call_loop(
                 elif etype == "done":
                     llm_response = event.data
 
-        except TimeoutError:
+        except asyncio.TimeoutError:
             logger.warning("[EXECUTOR] LLM streaming timeout (%ds)", timeout)
             raise
         except Exception as stream_err:
@@ -172,6 +176,33 @@ async def run_tool_call_loop(
 
         append_tool_messages(messages, llm_response, is_anthropic)
 
+        # 去重检测：同一工具+参数连续调用 3 次 → 自动生成代码兜底
+        for tc in llm_response.tool_calls:
+            call_key = f"{tc.name}:{json.dumps(tc.arguments, sort_keys=True)}"
+            recent_calls.append(call_key)
+        if len(recent_calls) >= 3 and len(set(recent_calls[-3:])) == 1:
+            failed_tc = llm_response.tool_calls[0]
+            logger.warning("[TOOL_LOOP] Detected repeated identical tool call: %s, auto-generating code fallback", failed_tc.name)
+            await event_publisher.publish_agent_thinking(
+                execution_id=engine.execution_id,
+                agent_name=agent.name,
+                thought=f"工具 {failed_tc.name} 连续调用失败，自动切换为代码模式完成任务",
+                step="auto_fallback",
+            )
+            fallback_result = await _auto_code_fallback(
+                engine, db, execution, task, agent, failed_tc, messages, llm,
+                effective_model, is_anthropic, timeout, all_tool_calls,
+            )
+            if fallback_result:
+                final_content = fallback_result
+                break
+            # 如果代码回退也失败，发消息让 agent 自行处理
+            messages.append({"role": "user", "content": (
+                "你已连续3次调用相同的工具但未成功完成任务。请改用 code_execute 工具，"
+                "编写 Python 代码来直接完成此任务。不要再重复调用之前失败的工具。"
+            )})
+            recent_calls = []
+
         # 强制推理
         if tool_round < max_tool_rounds - 1 and llm_response.tool_calls:
             try:
@@ -219,7 +250,7 @@ async def run_tool_call_loop(
                 to = str(tc_entry.get("output", ""))[:300]
                 tool_summary.append(f"[{tn}] {to}")
             final_content = (
-                "[工具调用已达上限，以下为最近的工具结果]\n\n" + "\n\n".join(tool_summary)
+                f"[工具调用已达上限，以下为最近的工具结果]\n\n" + "\n\n".join(tool_summary)
                 if tool_summary else "(工具调用轮次超限，未获得有效结果)"
             )
 
@@ -235,7 +266,7 @@ async def check_approval_and_execute(engine, db, execution, tc, all_tool_calls: 
     crew_approval_mode = getattr(_crew, 'approval_mode', 'semi_auto') or 'semi_auto'
 
     if crew_approval_mode != 'full_auto':
-        from app.services.approval_manager import ApprovalMode, get_approval_manager
+        from app.services.approval_manager import get_approval_manager, ApprovalMode
         approval_mgr = get_approval_manager()
         mode = ApprovalMode(crew_approval_mode)
         if approval_mgr.requires_approval(mode=mode, tool_name=tc.name):
@@ -269,6 +300,7 @@ async def check_approval_and_execute(engine, db, execution, tc, all_tool_calls: 
             )
             if approval_result["status"] != "approved":
                 tool_result = ToolResult(
+                    tool_call_id=tc.id, tool_name=tc.name,
                     success=False, output="",
                     error=f"工具调用被拒绝: {approval_result.get('reject_reason', '用户拒绝')}",
                 )
@@ -288,9 +320,126 @@ async def check_approval_and_execute(engine, db, execution, tc, all_tool_calls: 
         server_id, original_name = mcp_adapter.parse_mcp_tool_name(tc.name)
         mcp_result = await mcp_adapter.call_tool(server_id, original_name, tc.arguments)
         return ToolResult(
+            tool_call_id=tc.id, tool_name=tc.name,
             success=mcp_result.get("success", False),
             output=mcp_result.get("output", ""),
             error=mcp_result.get("error"),
         )
 
     return await execute_tool(tc.name, tc.arguments, tc.id)
+
+
+async def _auto_code_fallback(
+    engine, db, execution, task, agent, failed_tc, messages, llm,
+    effective_model, is_anthropic, timeout, all_tool_calls,
+) -> str | None:
+    """工具连续失败后，自动生成等效 Python 代码并执行。
+
+    利用 LLM 根据失败的工具调用和任务上下文生成 Python 代码，
+    然后通过 code_execute 工具执行，返回结果或 None。
+    """
+    from app.engine.tools import execute_tool
+
+    # 收集最近的工具调用结果作为上下文
+    recent_results = []
+    for tc_entry in all_tool_calls[-5:]:
+        tn = tc_entry.get("tool_name", "?")
+        to = str(tc_entry.get("output", ""))[:300]
+        err = tc_entry.get("error", "")
+        if err:
+            recent_results.append(f"[{tn}] 错误: {err[:200]}")
+        elif to:
+            recent_results.append(f"[{tn}] {to}")
+
+    # 构建让 LLM 生成代码的提示
+    code_prompt = f"""你之前尝试调用工具 `{failed_tc.name}` 但连续3次失败。
+
+任务描述：{(task.description or '')[:500]}
+期望输出：{(task.expected_output or '')[:300]}
+失败工具参数：{json.dumps(failed_tc.arguments, ensure_ascii=False)[:500]}
+最近工具结果：
+{chr(10).join(recent_results) if recent_results else '无'}
+
+请编写一段 Python 代码来完成此任务。要求：
+1. 代码必须是自包含的，可直接执行
+2. 如果需要创建文件，使用绝对路径保存到用户桌面
+3. 使用标准库或常见第三方库（reportlab, openpyxl, python-docx 等）
+4. 最后 print 输出结果摘要
+
+只输出代码，不要解释。用 ```python 包裹代码。"""
+
+    try:
+        # 让 LLM 生成代码
+        code_messages = [
+            {"role": "system", "content": "你是一个代码生成助手。只输出可执行的 Python 代码，不要解释。"},
+            {"role": "user", "content": code_prompt},
+        ]
+        code_resp = await asyncio.wait_for(
+            llm.chat(messages=code_messages, model=effective_model,
+                     temperature=0.3, max_tokens=2000, tools=None),
+            timeout=60,
+        )
+        code_text = code_resp.content or ""
+
+        # 提取代码块
+        import re
+        code_match = re.search(r'```python\s*\n(.*?)```', code_text, re.DOTALL)
+        if not code_match:
+            # 尝试直接提取（可能没有 markdown 包裹）
+            code_match = re.search(r'```\s*\n(.*?)```', code_text, re.DOTALL)
+        if not code_match:
+            # 整段当作代码
+            code = code_text.strip()
+            # 去掉可能的说明文字
+            lines = code.split('\n')
+            code_lines = []
+            in_code = False
+            for line in lines:
+                if line.strip().startswith(('import ', 'from ', 'def ', 'class ', 'if ', 'for ', 'while ', 'print(', 'with ', 'try:', 'except', '#', 'os.', 'path', 'f"', "f'", 'c.', 'canvas', 'wb ', 'ws ', 'doc ')):
+                    in_code = True
+                if in_code or line.startswith((' ', '\t')):
+                    code_lines.append(line)
+            code = '\n'.join(code_lines) if code_lines else code
+        else:
+            code = code_match.group(1).strip()
+
+        if not code or len(code) < 20:
+            logger.warning("[AUTO_FALLBACK] Generated code too short, skipping")
+            return None
+
+        logger.info("[AUTO_FALLBACK] Executing auto-generated code (%d chars) for task: %s", len(code), task.name[:50])
+        await event_publisher.publish_agent_thinking(
+            execution_id=engine.execution_id,
+            agent_name=agent.name,
+            thought=f"自动生成了 {len(code)} 字符的 Python 代码来完成任务，正在执行...",
+            step="auto_code_execute",
+        )
+
+        # 执行生成的代码
+        code_result = await execute_tool("code_execute", {"language": "python", "code": code}, "auto_fallback")
+
+        if code_result.success:
+            output = code_result.output or ""
+            logger.info("[AUTO_FALLBACK] Code execution succeeded: %s", output[:200])
+            await event_publisher.publish_agent_thinking(
+                execution_id=engine.execution_id,
+                agent_name=agent.name,
+                thought=f"代码自动执行成功: {output[:300]}",
+                step="auto_code_result",
+            )
+            all_tool_calls.append({
+                "timestamp": datetime.utcnow().isoformat(),
+                "tool_name": "code_execute",
+                "input": {"language": "python", "code": code[:500]},
+                "output": output,
+                "duration_ms": code_result.duration_ms,
+                "error": None,
+            })
+            return f"[自动代码回退] 工具 {failed_tc.name} 连续失败，已自动生成代码完成任务。\n\n{output}"
+        else:
+            logger.warning("[AUTO_FALLBACK] Code execution failed: %s", code_result.error)
+            return None
+
+    except Exception as e:
+        logger.error("[AUTO_FALLBACK] Auto code fallback failed: %s", e)
+        return None

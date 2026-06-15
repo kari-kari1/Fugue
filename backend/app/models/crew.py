@@ -1,10 +1,8 @@
 """Crew（工作流团队）模型"""
 
-import enum
-
-from sqlalchemy import JSON, Column, Float, ForeignKey, Integer, String, Text
-from sqlalchemy import Enum as SQLEnum
+from sqlalchemy import Column, String, Text, Integer, Float, ForeignKey, JSON, Enum as SQLEnum
 from sqlalchemy.orm import relationship
+import enum
 
 from app.models.base import BaseModel
 
@@ -56,7 +54,7 @@ class Crew(BaseModel):
     # 关系 - 明确指定外键以避免歧义
     agents = relationship("Agent", back_populates="crew", cascade="all, delete-orphan")
     # 直接任务关系
-    tasks = relationship("Task", back_populates="crew", cascade="all, delete-orphan",
+    tasks = relationship("Task", back_populates="crew", cascade="all, delete-orphan", 
                         foreign_keys="[Task.crew_id]", primaryjoin="Crew.id==Task.crew_id")
     executions = relationship("Execution", back_populates="crew", cascade="all, delete-orphan")
     condition_branches = relationship("ConditionBranch", back_populates="crew", cascade="all, delete-orphan")

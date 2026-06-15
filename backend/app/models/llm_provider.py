@@ -1,6 +1,6 @@
 """LLM提供商配置模型"""
 
-from sqlalchemy import Boolean, Column, Float, ForeignKey, Integer, String
+from sqlalchemy import Column, String, Integer, Float, Boolean, ForeignKey
 
 from app.models.base import BaseModel
 

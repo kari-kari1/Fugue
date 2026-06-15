@@ -45,58 +45,12 @@ dev = [
 ]
 
 [tool.ruff]
-line-length = 150
+line-length = 120
 target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP"]
-ignore = [
-    "E501",   # line too long
-    "E402",   # module level import not at top
-    "E701",   # multiple statements on one line
-    "E712",   # comparison to True/False
-    "E741",   # ambiguous variable name
-    "F401",   # unused import
-    "F601",   # dictionary key repeated
-    "F821",   # undefined name
-    "F841",   # unused variable
-    "N802",   # function name should be lowercase
-    "N806",   # variable in function should be lowercase
-    "N817",   # camelcase imported as acronym
-    "UP042",  # use StrEnum
-]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
-
-[tool.mypy]
-python_version = "3.12"
-ignore_missing_imports = true
-disable_error_code = [
-    "import-untyped",
-    "import-not-found",
-    "assignment",
-    "arg-type",
-    "return-value",
-    "attr-defined",
-    "name-defined",
-    "index",
-    "union-attr",
-    "misc",
-    "override",
-    "no-redef",
-    "valid-type",
-    "syntax",
-    "var-annotated",
-    "call-arg",
-    "call-overload",
-    "dict-item",
-    "type-var",
-    "truthy-function",
-    "operator",
-    "has-type",
-    "func-returns-value",
-    "unused-coroutine",
-]
-exclude = ["tests/"]

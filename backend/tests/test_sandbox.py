@@ -1,7 +1,7 @@
 """Agent执行沙箱测试 — 文件系统/网络隔离、危险命令拦截"""
 import os
 import sys
-
+import asyncio
 import pytest
 
 # 不使用 conftest 中的 fixtures，直接测试 engine 模块

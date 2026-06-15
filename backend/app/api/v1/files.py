@@ -2,8 +2,9 @@
 
 import logging
 import uuid
+from typing import Optional
 
-from fastapi import APIRouter, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, HTTPException, UploadFile, File, Query
 from fastapi.responses import Response
 from pydantic import BaseModel
 
@@ -41,7 +42,7 @@ class PresignedUrlOut(BaseModel):
 async def upload_file(
     current_user: CurrentUser,
     file: UploadFile = File(...),
-    prefix: str | None = Query(None, description="对象路径前缀，如 documents/kb-123"),
+    prefix: Optional[str] = Query(None, description="对象路径前缀，如 documents/kb-123"),
 ):
     """上传文件
 

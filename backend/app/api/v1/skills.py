@@ -5,14 +5,16 @@ import logging
 import os
 import tempfile
 import zipfile
+from typing import List, Optional
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import CurrentUser, get_db
 from app.models.skill import Skill
+from app.models.user import User
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -22,49 +24,49 @@ router = APIRouter()
 
 class SkillCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
-    description: str | None = None
+    description: Optional[str] = None
     version: str = "1.0.0"
-    author: str | None = None
-    author_url: str | None = None
+    author: Optional[str] = None
+    author_url: Optional[str] = None
     license: str = "MIT"
-    category: str | None = None
-    tags: list[str] = []
+    category: Optional[str] = None
+    tags: List[str] = []
     config: dict = {}
-    code_path: str | None = None
+    code_path: Optional[str] = None
     entrypoint: dict = {}
-    required_tools: list[str] = []
-    prompt_template: str | None = None
+    required_tools: List[str] = []
+    prompt_template: Optional[str] = None
     task_template: dict = {}
     active: bool = True
 
 
 class SkillUpdate(BaseModel):
-    name: str | None = None
-    description: str | None = None
-    version: str | None = None
-    author: str | None = None
-    category: str | None = None
-    tags: list[str] | None = None
-    config: dict | None = None
-    entrypoint: dict | None = None
-    required_tools: list[str] | None = None
-    prompt_template: str | None = None
-    task_template: dict | None = None
-    active: bool | None = None
+    name: Optional[str] = None
+    description: Optional[str] = None
+    version: Optional[str] = None
+    author: Optional[str] = None
+    category: Optional[str] = None
+    tags: Optional[List[str]] = None
+    config: Optional[dict] = None
+    entrypoint: Optional[dict] = None
+    required_tools: Optional[List[str]] = None
+    prompt_template: Optional[str] = None
+    task_template: Optional[dict] = None
+    active: Optional[bool] = None
 
 
 class SkillResponse(BaseModel):
     id: str
     name: str
-    description: str | None
+    description: Optional[str]
     version: str
-    author: str | None
-    category: str | None
-    tags: list[str]
+    author: Optional[str]
+    category: Optional[str]
+    tags: List[str]
     config: dict
     entrypoint: dict
-    required_tools: list[str]
-    prompt_template: str | None
+    required_tools: List[str]
+    prompt_template: Optional[str]
     task_template: dict
     active: bool
     star_count: str
@@ -88,9 +90,9 @@ def _require_admin(user):
 async def list_skills(
     current_user: CurrentUser,
     db: AsyncSession = Depends(get_db),
-    category: str | None = Query(None),
-    search: str | None = Query(None),
-    tag: str | None = Query(None),
+    category: Optional[str] = Query(None),
+    search: Optional[str] = Query(None),
+    tag: Optional[str] = Query(None),
     active_only: bool = Query(True),
 ):
     """列出所有技能（DB + 内置注册表）"""

@@ -1,18 +1,19 @@
 """Webhook服务单元测试（数据库持久化版本）"""
 
-import hashlib
 import hmac
+import hashlib
 import json
 import os
-from unittest.mock import AsyncMock, MagicMock, patch
-
 import pytest
 import pytest_asyncio
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from unittest.mock import AsyncMock, MagicMock, patch
+from datetime import datetime
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.pool import NullPool
 
 from app.models.base import Base
 from app.models.webhook import Webhook
+
 
 # ── 测试数据库引擎（文件型SQLite，避免 :memory: 连接隔离问题） ──────────
 
@@ -461,9 +462,10 @@ async def test_test_webhook_failure(service):
 
 def test_get_webhook_service_singleton():
     """get_webhook_service应返回同一实例"""
+    from app.services.webhook_service import get_webhook_service, _webhook_service
+
     # 重置全局实例
     import app.services.webhook_service as ws_module
-    from app.services.webhook_service import get_webhook_service
     ws_module._webhook_service = None
 
     s1 = get_webhook_service()

@@ -1,13 +1,14 @@
 """条件分支执行逻辑"""
 
 import logging
+from typing import Dict, List, Any
 
-from simpleeval import InvalidExpression, simple_eval
+from simpleeval import simple_eval, InvalidExpression
 
 logger = logging.getLogger(__name__)
 
 
-def evaluate_condition(condition, task_outputs: dict[str, str]) -> list[str]:
+def evaluate_condition(condition, task_outputs: Dict[str, str]) -> List[str]:
     """评估条件表达式，返回应执行的 task ID 列表。
 
     Args:
@@ -53,7 +54,7 @@ def evaluate_condition(condition, task_outputs: dict[str, str]) -> list[str]:
 
 def filter_tasks_by_conditions(
     conditions,
-    task_outputs: dict[str, str],
+    task_outputs: Dict[str, str],
     all_task_ids: set,
 ) -> tuple:
     """根据所有条件分支过滤任务。

@@ -1,20 +1,23 @@
 """工作流发布API — 将工作流发布为REST API"""
 
 import logging
-from datetime import UTC
-
-from fastapi import APIRouter, Header, HTTPException, Request
+from typing import Optional
+from fastapi import APIRouter, HTTPException, Depends, Header, Request
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import CurrentUser, DatabaseSession
+from app.api.deps import DatabaseSession, CurrentUser
+from app.models.execution import TriggerType
+from app.models.api_key import APIKey
+from app.models.published_workflow import PublishedWorkflow
 from app.api.v1.api_keys import (
-    WorkflowExecuteRequest,
     WorkflowPublishRequest,
+    WorkflowExecuteRequest,
     get_api_key_from_header,
 )
 from app.models.crew import Crew
-from app.models.execution import Execution, ExecutionStatus, TriggerType
-from app.models.published_workflow import PublishedWorkflow
+from app.models.execution import Execution, ExecutionStatus
+from app.engine.executor import ExecutionEngine
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -138,7 +141,7 @@ async def execute_published_workflow(
     request: Request,
     data: WorkflowExecuteRequest,
     db: DatabaseSession,
-    authorization: str | None = Header(None),
+    authorization: Optional[str] = Header(None),
 ):
     """执行已发布的工作流
 
@@ -198,8 +201,8 @@ async def execute_published_workflow(
     db.add(execution)
 
     # 更新API Key使用时间
-    from datetime import datetime
-    api_key.last_used_at = datetime.now(UTC)
+    from datetime import datetime, timezone
+    api_key.last_used_at = datetime.now(timezone.utc)
 
     await db.commit()
     await db.refresh(execution)
@@ -210,7 +213,6 @@ async def execute_published_workflow(
         execute_workflow.delay(str(execution.id))
     else:
         import asyncio
-
         from app.engine.executor import ExecutionEngine
         async def _run():
             try:

@@ -8,7 +8,8 @@ import json
 import logging
 import uuid
 from contextvars import ContextVar
-from datetime import UTC, datetime
+from datetime import datetime, timezone
+from typing import Optional
 
 # ─── 上下文变量 — 跨 async 调用传播 ──────────────────────────────────────────
 
@@ -19,10 +20,10 @@ user_id_var: ContextVar[str] = ContextVar("user_id", default="")
 
 
 def set_trace_context(
-    trace_id: str | None = None,
-    execution_id: str | None = None,
-    agent_name: str | None = None,
-    user_id: str | None = None,
+    trace_id: Optional[str] = None,
+    execution_id: Optional[str] = None,
+    agent_name: Optional[str] = None,
+    user_id: Optional[str] = None,
 ):
     """设置当前请求/执行的日志上下文"""
     if trace_id is not None:
@@ -55,7 +56,7 @@ class JSONFormatter(logging.Formatter):
 
     def format(self, record: logging.LogRecord) -> str:
         log_entry = {
-            "timestamp": datetime.now(UTC).isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "level": record.levelname,
             "logger": record.name,
             "message": record.getMessage(),

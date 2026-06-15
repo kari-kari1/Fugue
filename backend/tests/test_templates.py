@@ -72,9 +72,9 @@ async def test_list_templates_pagination(
     data = response.json()
     assert len(data["items"]) == 2
 
-    # 最后一页（page=10, limit=2, 20个模板）
+    # 第三页（只有1个）
     response = await client.get(
-        "/api/v1/templates/?page=10&limit=2",
+        "/api/v1/templates/?page=3&limit=2",
         headers=test_user["headers"],
     )
     assert response.status_code == 200

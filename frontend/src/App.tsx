@@ -17,72 +17,41 @@ const Plugins = React.lazy(() => import('./pages/Plugins'));
 const MCPMarketplace = React.lazy(() => import('./pages/MCPMarketplace'));
 const WebhooksPage = React.lazy(() => import('./pages/WebhooksPage'));
 const SchedulesPage = React.lazy(() => import('./pages/SchedulesPage'));
-import { ElicitationListener } from './components/mcp/ElicitationDialog';
-const KnowledgeBases = React.lazy(() => import('./pages/KnowledgeBases'));
 const PublishedPage = React.lazy(() => import('./pages/PublishedPage'));
+const KnowledgeBases = React.lazy(() => import('./pages/KnowledgeBases'));
+const SkillsMarketplace = React.lazy(() => import('./pages/SkillsMarketplace'));
 const Login = React.lazy(() => import('./pages/Login'));
 const Register = React.lazy(() => import('./pages/Register'));
 const Onboarding = React.lazy(() => import('./pages/Onboarding'));
-const SkillsMarketplace = React.lazy(() => import('./pages/SkillsMarketplace'));
+import { ElicitationListener } from './components/mcp/ElicitationDialog';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import TutorialOverlay from './components/TutorialOverlay';
 
 const queryClient = new QueryClient({
   defaultOptions: {
-    queries: {
-      retry: 1,
-      refetchOnWindowFocus: false,
-    },
+    queries: { refetchOnWindowFocus: false, retry: 1, staleTime: 30000 },
   },
 });
 
-const DISMISS_DURATION_MS = 5 * 60 * 1000;
+// ─── Token Refresh Modal ────────────────────────────────────────────────────
+
+const DISMISS_DURATION_MS = 10 * 60 * 1000;
 
 const TokenRefreshModal: React.FC<{
-  remainingSeconds: number;
-  onRefresh: () => void;
-  onDismiss: () => void;
-  refreshing: boolean;
+  remainingSeconds: number; onRefresh: () => void; onDismiss: () => void; refreshing: boolean;
 }> = ({ remainingSeconds, onRefresh, onDismiss, refreshing }) => {
   const minutes = Math.floor(remainingSeconds / 60);
   const seconds = remainingSeconds % 60;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
-      <div className="bg-white border border-divider radius-xl shadow-xl-var p-6 w-full max-w-sm mx-4 animate-scale-in">
-        <div className="flex justify-center mb-4">
-          <div className="w-12 h-12 rounded-full bg-accent-amber-dim flex items-center justify-center">
-            <svg className="w-6 h-6 text-accent-amber" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
-            </svg>
-          </div>
-        </div>
-
-        <h3 className="text-17 font-semibold text-primary text-center mb-2">
-          会话即将过期
-        </h3>
-
-        <p className="text-13 text-secondary text-center mb-6">
-          您的会话将在{' '}
-          <span className="font-mono font-medium text-accent-amber">
-            {minutes}:{seconds.toString().padStart(2, '0')}
-          </span>{' '}
-          后过期，请及时续期以避免数据丢失。
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+      <div style={{ background: 'white', borderRadius: 16, padding: 32, maxWidth: 400, width: '90%', textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}>
+        <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>登录即将过期</h2>
+        <p style={{ fontSize: 14, color: '#86868B', marginBottom: 24 }}>
+          您的会话将在 {minutes} 分 {seconds} 秒后过期，是否立即续期？
         </p>
-
-        <div className="flex gap-3">
-          <button onClick={onDismiss} disabled={refreshing}
-            className="flex-1 px-4 py-2.5 text-13 font-medium text-primary bg-secondary radius-lg hover:bg-tertiary border border-divider transition-colors disabled:opacity-50">
-            稍后提醒
-          </button>
-          <button onClick={onRefresh} disabled={refreshing}
-            className="flex-1 px-4 py-2.5 text-13 font-medium text-white bg-[var(--accent-primary)] radius-lg hover:bg-[var(--accent-primary-hover)] transition-colors shadow-sm-var disabled:opacity-50 flex items-center justify-center gap-2">
-            {refreshing && (
-              <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
-            )}
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+          <button onClick={onDismiss} style={{ padding: '10px 24px', borderRadius: 8, border: '1px solid #E5E5EA', background: 'white', fontSize: 14, cursor: 'pointer' }}>稍后再说</button>
+          <button onClick={onRefresh} disabled={refreshing} style={{ padding: '10px 24px', borderRadius: 8, border: 'none', background: '#0071E3', color: 'white', fontSize: 14, cursor: 'pointer', opacity: refreshing ? 0.6 : 1 }}>
             {refreshing ? '续期中...' : '立即续期'}
           </button>
         </div>
@@ -90,6 +59,8 @@ const TokenRefreshModal: React.FC<{
     </div>
   );
 };
+
+// ─── ProtectedRoute ─────────────────────────────────────────────────────────
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, isLoading, checkTokenExpiry, refreshToken, logout } = useAuthStore();
@@ -101,61 +72,31 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, []);
 
   useEffect(() => {
     if (!isAuthenticated) return;
-
     const check = () => {
       const { isExpired, isExpiringSoon, remainingSeconds } = checkTokenExpiry();
-
-      if (isExpired) {
-        setShowModal(false);
-        logout();
-        return;
-      }
-
-      if (isExpiringSoon && Date.now() > dismissedUntilRef.current) {
-        setCountdown(remainingSeconds);
-        setShowModal(true);
-      } else if (!isExpiringSoon) {
-        setShowModal(false);
-      }
+      if (isExpired) { setShowModal(false); logout(); return; }
+      if (isExpiringSoon && Date.now() > dismissedUntilRef.current) { setCountdown(remainingSeconds); setShowModal(true); }
+      else if (!isExpiringSoon) { setShowModal(false); }
     };
-
     check();
-
-    const checkInterval = setInterval(check, 30_000);
-
+    intervalRef.current = setInterval(check, 30_000);
     const countdownInterval = setInterval(() => {
       if (showModal) {
         const { isExpired, remainingSeconds } = checkTokenExpiry();
-        if (isExpired) {
-          setShowModal(false);
-          logout();
-        } else {
-          setCountdown(remainingSeconds);
-        }
+        if (isExpired) { setShowModal(false); logout(); } else { setCountdown(remainingSeconds); }
       }
     }, 1_000);
-
-    return () => {
-      clearInterval(checkInterval);
-      clearInterval(countdownInterval);
-    };
-  }, [isAuthenticated, showModal, checkTokenExpiry, logout]);
+    return () => { clearInterval(countdownInterval); };
+  }, [isAuthenticated]);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
-    try {
-      await refreshToken();
-      setShowModal(false);
-    } finally {
-      setRefreshing(false);
-    }
+    try { await refreshToken(); setShowModal(false); } finally { setRefreshing(false); }
   }, [refreshToken]);
 
   const handleDismiss = useCallback(() => {
@@ -164,46 +105,27 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   }, []);
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-white">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent-primary" />
-      </div>
-    );
+    return <div className="flex items-center justify-center min-h-screen bg-white"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent-primary" /></div>;
   }
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
-  // 检测老用户：Zustand store 初始化时已同步检查旧版 localStorage
-
-  // 首次用户自动跳转到交互式新手教程
-  if (!onboardingCompleted && window.location.hash !== '#/onboarding') {
-    return <Navigate to="/onboarding" replace />;
-  }
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
 
   return (
     <>
-      {children}
-      {showModal && (
-        <TokenRefreshModal
-          remainingSeconds={countdown}
-          onRefresh={handleRefresh}
-          onDismiss={handleDismiss}
-          refreshing={refreshing}
-        />
-      )}
+      {!onboardingCompleted && window.location.hash !== '#/onboarding'
+        ? <Navigate to="/onboarding" replace />
+        : children}
+      {showModal && <TokenRefreshModal remainingSeconds={countdown} onRefresh={handleRefresh} onDismiss={handleDismiss} refreshing={refreshing} />}
     </>
   );
 };
+
+// ─── App ────────────────────────────────────────────────────────────────────
 
 function App() {
   const { loadUser, token } = useAuthStore();
 
   useEffect(() => {
-    if (token) {
-      loadUser();
-    }
+    if (token) loadUser();
   }, [token, loadUser]);
 
   return (
@@ -234,38 +156,8 @@ function App() {
           <ElicitationListener />
         </div>
       </Router>
-
-      {/* 新手教程引导覆盖层 */}
       <TutorialOverlay />
-
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          duration: 3000,
-          style: {
-            background: 'white',
-            color: 'var(--text-primary)',
-            border: '1px solid var(--border-divider)',
-            borderRadius: 'var(--radius-lg)',
-            boxShadow: 'var(--shadow-lg)',
-            fontSize: '13px',
-          },
-          success: {
-            duration: 2000,
-            iconTheme: {
-              primary: '#34C759',
-              secondary: 'white',
-            },
-          },
-          error: {
-            duration: 4000,
-            iconTheme: {
-              primary: '#FF3B30',
-              secondary: 'white',
-            },
-          },
-        }}
-      />
+      <Toaster position="top-right" toastOptions={{ duration: 3000, style: { background: 'white', color: 'var(--text-primary)', border: '1px solid var(--border-divider)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)', fontSize: '13px' } }} />
     </QueryClientProvider>
     </ErrorBoundary>
   );

@@ -1,12 +1,13 @@
 """断点续传管理器"""
 
 import logging
-from typing import Any
+from typing import Dict, List, Any, Optional
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.checkpoint import ExecutionCheckpoint
+from app.models.execution import TaskExecution, TaskExecutionStatus
 
 logger = logging.getLogger(__name__)
 
@@ -27,11 +28,11 @@ class CheckpointManager:
     async def create_checkpoint(
         self,
         checkpoint_type: str,
-        task_id: str | None = None,
-        task_name: str | None = None,
-        completed_task_ids: list[str] = None,
-        task_outputs: dict[str, str] = None,
-        context: dict[str, Any] = None,
+        task_id: Optional[str] = None,
+        task_name: Optional[str] = None,
+        completed_task_ids: List[str] = None,
+        task_outputs: Dict[str, str] = None,
+        context: Dict[str, Any] = None,
         total_tokens: int = 0,
         total_cost_usd: float = 0.0,
     ) -> ExecutionCheckpoint:
@@ -57,7 +58,7 @@ class CheckpointManager:
         )
         return checkpoint
 
-    async def get_latest_checkpoint(self) -> ExecutionCheckpoint | None:
+    async def get_latest_checkpoint(self) -> Optional[ExecutionCheckpoint]:
         """获取最新的断点"""
         result = await self.db.execute(
             select(ExecutionCheckpoint)
@@ -67,7 +68,7 @@ class CheckpointManager:
         )
         return result.scalar_one_or_none()
 
-    async def resume_from_checkpoint(self) -> dict[str, Any] | None:
+    async def resume_from_checkpoint(self) -> Optional[Dict[str, Any]]:
         """从断点恢复执行状态
 
         Returns:
@@ -103,8 +104,8 @@ class CheckpointManager:
         self,
         task_id: str,
         task_name: str,
-        completed_task_ids: list[str],
-        task_outputs: dict[str, str],
+        completed_task_ids: List[str],
+        task_outputs: Dict[str, str],
         total_tokens: int = 0,
         total_cost_usd: float = 0.0,
     ) -> ExecutionCheckpoint:
@@ -121,11 +122,11 @@ class CheckpointManager:
 
     async def create_manual_checkpoint(
         self,
-        completed_task_ids: list[str],
-        task_outputs: dict[str, str],
+        completed_task_ids: List[str],
+        task_outputs: Dict[str, str],
         total_tokens: int = 0,
         total_cost_usd: float = 0.0,
-        context: dict[str, Any] = None,
+        context: Dict[str, Any] = None,
     ) -> ExecutionCheckpoint:
         """手动创建断点（暂停时调用）"""
         return await self.create_checkpoint(

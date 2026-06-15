@@ -1,7 +1,7 @@
 """Iteration（迭代）相关Schema"""
 
 from datetime import datetime
-
+from typing import Optional
 from pydantic import BaseModel, Field
 
 
@@ -19,13 +19,13 @@ class IterationResponse(BaseModel):
     feedback: str
     mode: str
     status: str
-    refined_output: str | None = None
-    context_snapshot: dict | None = None
+    refined_output: Optional[str] = None
+    context_snapshot: Optional[dict] = None
     tokens_used: int = 0
     cost_usd: float = 0.0
-    error_message: str | None = None
+    error_message: Optional[str] = None
     created_at: datetime
     updated_at: datetime
-    completed_at: datetime | None = None
+    completed_at: Optional[datetime] = None
 
     model_config = {"from_attributes": True}

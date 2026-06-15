@@ -1,8 +1,9 @@
 """速率限制器 — C6: Redis 模式 + 内存降级"""
 
 import asyncio
-import logging
 import time
+import logging
+from typing import Optional, Dict, List
 from collections import defaultdict
 
 from app.core.config import settings
@@ -14,7 +15,7 @@ class _MemoryRateLimiter:
     """内存滑动窗口速率限制器（Redis 不可用时的降级方案）"""
 
     def __init__(self):
-        self._data: dict[str, list[float]] = defaultdict(list)
+        self._data: Dict[str, List[float]] = defaultdict(list)
         self._lock = asyncio.Lock()
 
     async def check_rate_limit(self, key: str, limit: int, window_seconds: int = 60) -> bool:

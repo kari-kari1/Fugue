@@ -8,6 +8,7 @@ import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import { useAuthStore } from '../stores/authStore';
 import { hasConfiguredKeys } from '../lib/llmKeys';
+import { t } from '../lib/i18n';
 import { TextReveal } from '../components/motion/TextReveal';
 import { StaggerList, StaggerItem } from '../components/motion/StaggerList';
 
@@ -101,7 +102,7 @@ const Register = () => {
           <StaggerItem>
             <input
               type="text"
-              placeholder="Username"
+              placeholder={t('register.username')}
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
@@ -114,7 +115,7 @@ const Register = () => {
           <StaggerItem>
             <input
               type="email"
-              placeholder="Email"
+              placeholder={t('register.email')}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -127,7 +128,7 @@ const Register = () => {
           <StaggerItem>
             <input
               type="password"
-              placeholder="Password"
+              placeholder={t('register.password')}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -140,7 +141,7 @@ const Register = () => {
           <StaggerItem>
             <input
               type="password"
-              placeholder="Confirm Password"
+              placeholder={t('register.confirm_password')}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
@@ -183,9 +184,9 @@ const Register = () => {
             color: 'var(--text-tertiary)',
             marginTop: 'var(--space-8)',
           }}>
-            Already have an account?{' '}
+            {t('register.has_account')}{' '}
             <Link to="/login" state={{ skipIntro: true }} style={{ color: 'var(--link)', textDecoration: 'none' }}>
-              Sign in
+              {t('register.sign_in')}
             </Link>
           </p>
         </StaggerItem>

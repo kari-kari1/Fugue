@@ -36,7 +36,7 @@ class TestMCPServerFactory:
 
     def test_get_mcp_server_returns_singleton(self):
         """get_mcp_server 应返回同一实例（单例模式）"""
-        from app.mcp_server.server import _reset_server, get_mcp_server
+        from app.mcp_server.server import get_mcp_server, _reset_server
 
         _reset_server()
         s1 = get_mcp_server()

@@ -104,7 +104,7 @@ export default function Onboarding() {
   const handleComplete = async () => {
     setIsCompleting(true);
     try {
-      // 1. 保存 LLM API Key 到正确的存储位置
+      // 1. 保存 LLM API Key
       const { saveLLMConfig, getLLMConfig } = await import('../lib/llmKeys');
       const config = getLLMConfig();
       config[provider] = {
@@ -114,52 +114,80 @@ export default function Onboarding() {
       };
       saveLLMConfig(config);
 
-      // 2. 通过 API 创建第一个工作流 (Crew)
-      const { apiClient } = await import('../api/client');
+      // 2. 创建工作流 — 使用 fetch 确保可靠性
+      const { useAuthStore } = await import('../stores/authStore');
+      const token = useAuthStore.getState().token;
       let crewId: string | null = null;
       try {
-        const crewRes = await apiClient.post('/crews/', {
-          name: agentName
-            ? t('onboarding.crew_workflow_name', { name: agentName })
-            : t('onboarding.first_workflow_name'),
-          description: t('onboarding.first_workflow_desc', { scenario: scenarios.join(', ') || 'custom' }),
-          process: 'sequential',
+        const res = await fetch('http://127.0.0.1:8000/api/v1/crews/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            name: agentName || t('onboarding.first_workflow_name'),
+            description: t('onboarding.first_workflow_desc', { scenario: scenarios.join(', ') || 'custom' }),
+            process: 'sequential',
+          }),
         });
-        crewId = crewRes.data.id;
+        if (res.ok) {
+          const data = await res.json();
+          crewId = data.id;
+        }
       } catch (e) {
-        console.warn('创建工作流失败，跳过:', e);
+        console.warn('创建工作流失败:', e);
       }
 
-      // 3. 如果有模板选择，尝试导入模板数据
-      if (selectedTemplate && crewId) {
+      // 3. 创建 Agent + Task 组成完整工作流
+      let agentId: string | null = null;
+      if (crewId) {
         try {
-          await apiClient.post(`/crews/${crewId}/agents/`, {
-            name: agentName || t('onboarding.first_agent_name'),
-            role: t('onboarding.first_agent_role'),
-            goal: t('onboarding.first_agent_goal'),
-            backstory: t('onboarding.first_agent_backstory'),
-            llm_provider: provider,
-            llm_model: config[provider].model,
+          const agentRes = await fetch('http://127.0.0.1:8000/api/v1/agents/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({
+              crew_id: crewId,
+              name: agentName || t('onboarding.first_agent_name'),
+              role: t('onboarding.first_agent_role'),
+              goal: t('onboarding.first_agent_goal'),
+              backstory: t('onboarding.first_agent_backstory'),
+              llm_provider: provider,
+              llm_model: config[provider]?.model || 'gpt-4o-mini',
+            }),
           });
+          if (agentRes.ok) {
+            const agentData = await agentRes.json();
+            agentId = agentData.id;
+          }
         } catch (e) {
-          console.warn('创建Agent失败，跳过:', e);
+          console.warn('创建Agent失败:', e);
+        }
+        // 创建 Task 并关联 Agent
+        if (agentId) {
+          try {
+            await fetch('http://127.0.0.1:8000/api/v1/tasks/', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+              body: JSON.stringify({
+                crew_id: crewId,
+                agent_id: agentId,
+                name: t('onboarding.first_task_name'),
+                description: t('onboarding.first_task_desc', { scenario: scenarios.join(', ') || 'custom' }),
+                expected_output: t('onboarding.first_task_output'),
+              }),
+            });
+          } catch (e) {
+            console.warn('创建Task失败:', e);
+          }
         }
       }
 
-      // 4. 保存完成状态 (Zustand store)
+      // 4. 保存完成状态
       completeOnboarding();
-      if (isTutorialMode) {
-        setTutorialMode(true);
-      }
+      if (isTutorialMode) setTutorialMode(true);
 
       toast.success(t('onboarding.config_saved'));
 
-      // 5. 跳转到编辑器（如果有创建的工作流）或首页
-      if (crewId) {
-        navigate(`/crew/${crewId}`);
-      } else {
-        navigate('/');
-      }
+      // 5. 导航——有工作流则到编辑器，否则到首页
+      navigate(crewId ? `/crew/${crewId}` : '/');
     } catch {
       toast.error(t('onboarding.config_save_failed'));
     } finally {

@@ -7,6 +7,7 @@ import { Plus, Database, FileText, Trash2, Upload, Search, X, BookOpen, ArrowLef
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/client';
+import { t } from '../lib/i18n';
 
 interface KB {
   id: string;
@@ -46,7 +47,9 @@ const KnowledgeBases: React.FC = () => {
   const { data: vsStatus } = useQuery({
     queryKey: ['vector-store-status'],
     queryFn: async () => (await apiClient.get<{ available: boolean; engine: string; message: string }>('/knowledge-bases/vector-store/status')).data,
-    staleTime: 60000,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchOnMount: 'always',
   });
 
   const { data: docs } = useQuery({
@@ -155,11 +158,11 @@ const KnowledgeBases: React.FC = () => {
               onClick={() => navigate('/')}
               style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 10px', borderRadius: 8, background: 'rgba(0,0,0,0.04)', border: 'none', cursor: 'pointer', color: '#6E6E73', fontSize: 13 }}
             >
-              <ArrowLeft style={{ width: 14, height: 14 }} /> 返回
+              <ArrowLeft style={{ width: 14, height: 14 }} /> {t('common.back')}
             </button>
             <BookOpen style={{ width: 24, height: 24, color: '#0071E3' }} />
             <h1 style={{ fontSize: 22, fontWeight: 600, color: 'var(--text-primary, #1D1D1F)', margin: 0 }}>
-              知识库管理
+              {t('knowledge.title')}
             </h1>
           </div>
           <button
@@ -170,7 +173,7 @@ const KnowledgeBases: React.FC = () => {
               fontSize: 13, fontWeight: 500, cursor: 'pointer',
             }}
           >
-            <Plus style={{ width: 14, height: 14 }} /> 新建知识库
+            <Plus style={{ width: 14, height: 14 }} /> {t('knowledge.create')}
           </button>
         </div>
 
@@ -182,7 +185,7 @@ const KnowledgeBases: React.FC = () => {
             border: '1px solid rgba(255, 159, 10, 0.2)', marginTop: 12, fontSize: 13,
           }}>
             <AlertTriangle style={{ width: 16, height: 16, color: '#FF9F0A', flexShrink: 0 }} />
-            <span style={{ color: '#1D1D1F' }}>{vsStatus.message}</span>
+            <span style={{ color: '#1D1D1F' }}>{vsStatus.available ? t('knowledge.vector_store_ok') : t('knowledge.vector_store_unavailable')}</span>
           </div>
         )}
         {vsStatus && vsStatus.available && (

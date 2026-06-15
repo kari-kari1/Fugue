@@ -3,21 +3,22 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Search, Plus, BookOpen, LayoutTemplate, Star, Users, FileText, ShoppingCart, Code, Palette, Sparkles } from 'lucide-react';
+import { ArrowLeft, Search, Plus, BookOpen, LayoutTemplate, Star, Users, FileText, Code, Palette, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 import { Button } from '../components/ui/Button';
 import { Card, CardContent } from '../components/ui/Card';
 import { Skeleton } from '../components/ui/Skeleton';
 import { templatesApi, type Template } from '../api/templates';
+import { t } from '../lib/i18n';
 
 const categories = [
   { id: 'all', label: '全部', icon: <LayoutTemplate className="w-4 h-4" /> },
-  { id: 'content', label: '内容创作', icon: <FileText className="w-4 h-4" /> },
-  { id: 'ecommerce', label: '电商运营', icon: <ShoppingCart className="w-4 h-4" /> },
-  { id: 'development', label: '开发辅助', icon: <Code className="w-4 h-4" /> },
-  { id: 'design', label: '设计创意', icon: <Palette className="w-4 h-4" /> },
-  { id: 'general', label: '通用办公', icon: <Sparkles className="w-4 h-4" /> },
+  { id: 'research', label: '调研分析', icon: <FileText className="w-4 h-4" /> },
+  { id: 'code', label: '代码开发', icon: <Code className="w-4 h-4" /> },
+  { id: 'analysis', label: '策略分析', icon: <Sparkles className="w-4 h-4" /> },
+  { id: 'document', label: '文档生成', icon: <Palette className="w-4 h-4" /> },
+  { id: 'literature', label: '学术研究', icon: <BookOpen className="w-4 h-4" /> },
 ];
 
 const Templates: React.FC = () => {
@@ -59,9 +60,9 @@ const Templates: React.FC = () => {
       }}>
         <div className="max-w-[980px] mx-auto flex items-center gap-4" style={{ height: 'var(--nav-height)' }}>
           <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
-            <ArrowLeft className="w-4 h-4 mr-1" /> 返回
+            <ArrowLeft className="w-4 h-4 mr-1" /> {t('common.back')}
           </Button>
-          <h1 className="text-21 font-semibold text-primary">模板市场</h1>
+          <h1 className="text-21 font-semibold text-primary">{t('templates.title')}</h1>
         </div>
       </header>
 
@@ -74,7 +75,7 @@ const Templates: React.FC = () => {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="搜索模板..."
+              placeholder={t('templates.search_placeholder')}
               className="w-full pl-10 pr-4 py-3 radius-lg bg-secondary border border-divider text-sm text-primary placeholder:text-tertiary outline-none focus:border-apple-blue focus:ring-2 focus:ring-[var(--accent-primary-dim)] transition-all"
             />
           </div>
@@ -130,7 +131,7 @@ const Templates: React.FC = () => {
         {filtered && filtered.length === 0 && !isLoading && (
           <div className="flex flex-col items-center justify-center py-20">
             <BookOpen className="w-12 h-12 text-tertiary mb-4" />
-            <p className="text-secondary text-sm">没有找到匹配的模板</p>
+            <p className="text-secondary text-sm">{t('templates.no_match')}</p>
           </div>
         )}
       </main>
@@ -173,7 +174,7 @@ const TemplateCard: React.FC<{
 
         <Button size="sm" className="w-full" onClick={onUse} disabled={isLoading}>
           <Plus className="w-3.5 h-3.5 mr-1.5" />
-          {isLoading ? '导入中...' : '使用模板'}
+          {isLoading ? t('templates.importing') : t('templates.use_template')}
         </Button>
       </CardContent>
     </Card>

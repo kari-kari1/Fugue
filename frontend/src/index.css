@@ -987,5 +987,6 @@ select option {
 .border-blue-8 { border-color: rgba(0,113,227,0.08); }
 .border-green-15 { border-color: rgba(52,199,89,0.15); }
 .border-amber-15 { border-color: rgba(255,149,0,0.15); }
+
 .border-cyan-15 { border-color: rgba(90,200,250,0.15); }
 .border-purple-15 { border-color: rgba(88,86,214,0.15); }

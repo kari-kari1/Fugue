@@ -26,9 +26,9 @@
             return f"搜索结果: {query}"
 """
 
-from .base import Plugin, PluginMeta, Tool
-from .loader import PluginLoader
+from .base import Plugin, Tool, PluginMeta
 from .manager import PluginManager, get_plugin_manager
+from .loader import PluginLoader
 
 __version__ = "1.0.0"
 __all__ = [

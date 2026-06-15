@@ -1,10 +1,8 @@
 """Iteration（迭代）模型"""
 
 import enum
-from typing import Any
-
-from sqlalchemy import JSON, Column, DateTime, Float, ForeignKey, Integer, String, Text
-from sqlalchemy import Enum as SQLEnum
+from typing import Dict, Any, Optional
+from sqlalchemy import Column, String, Text, Integer, Float, ForeignKey, JSON, Enum as SQLEnum, DateTime
 from sqlalchemy.orm import relationship, validates
 
 from app.models.base import BaseModel
@@ -75,7 +73,7 @@ class Iteration(BaseModel):
     def __repr__(self) -> str:
         return f"<Iteration #{self.iteration_number} ({self.status.value if self.status else 'UNKNOWN'})>"
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> Dict[str, Any]:
         return {
             "id": str(self.id),
             "execution_id": self.execution_id,

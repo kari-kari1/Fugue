@@ -1,26 +1,26 @@
 """定时任务调度服务 — 数据库持久化版本"""
 
-import asyncio
 import logging
-from datetime import UTC, datetime
-from typing import Any
-
+import asyncio
+from typing import Dict, Any, List, Optional
+from datetime import datetime, timezone
 from croniter import croniter
+
 from sqlalchemy import select
 
-from app.core.config import settings
-from app.core.database import db_session_manager
 from app.models.crew import Crew
 from app.models.execution import Execution, ExecutionStatus
 from app.models.scheduled_task import ScheduledTask as ScheduledTaskModel
+from app.core.database import db_session_manager
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
 
-def _calculate_next_run(cron_expression: str) -> datetime | None:
+def _calculate_next_run(cron_expression: str) -> Optional[datetime]:
     """根据Cron表达式计算下次运行时间（UTC）"""
     try:
-        cron = croniter(cron_expression, datetime.now(UTC).replace(tzinfo=None))
+        cron = croniter(cron_expression, datetime.now(timezone.utc).replace(tzinfo=None))
         return cron.get_next(datetime)
     except Exception as e:
         logger.error(f"Invalid cron expression '{cron_expression}': {e}")
@@ -55,7 +55,7 @@ class SchedulerService:
         user_id: str,
         cron_expression: str,
         timezone: str = "UTC",
-        inputs: dict[str, Any] | None = None,
+        inputs: Optional[Dict[str, Any]] = None,
     ) -> ScheduledTaskModel:
         """添加定时任务并写入数据库
 
@@ -130,7 +130,7 @@ class SchedulerService:
         logger.info(f"Toggled scheduled task {task_id}: is_active={is_active}")
         return True
 
-    async def get_task(self, task_id: str) -> ScheduledTaskModel | None:
+    async def get_task(self, task_id: str) -> Optional[ScheduledTaskModel]:
         """从数据库查询单个定时任务"""
         async with db_session_manager.get_session() as db:
             result = await db.execute(
@@ -138,7 +138,7 @@ class SchedulerService:
             )
             return result.scalar_one_or_none()
 
-    async def get_user_tasks(self, user_id: str) -> list[ScheduledTaskModel]:
+    async def get_user_tasks(self, user_id: str) -> List[ScheduledTaskModel]:
         """从数据库查询用户的所有定时任务"""
         async with db_session_manager.get_session() as db:
             result = await db.execute(
@@ -148,7 +148,7 @@ class SchedulerService:
 
     async def _check_and_execute_tasks(self):
         """从数据库查询到期任务并执行"""
-        now = datetime.now(UTC).replace(tzinfo=None)
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
 
         async with db_session_manager.get_session() as db:
             result = await db.execute(
@@ -206,6 +206,7 @@ class SchedulerService:
             logger.info(f"Dispatched Celery task for execution {execution_id}")
         else:
             # 直接执行（无 Celery 模式）
+            from app.engine.executor import ExecutionEngine
             asyncio.create_task(self._run_directly(execution_id))
             logger.info(f"Dispatched direct execution {execution_id} (no Celery)")
 
@@ -228,7 +229,7 @@ class SchedulerService:
             if task is None or not task.is_active:
                 return
 
-            now = datetime.now(UTC).replace(tzinfo=None)
+            now = datetime.now(timezone.utc).replace(tzinfo=None)
             task.last_run_at = now
             task.run_count = (task.run_count or 0) + 1
 
@@ -239,7 +240,7 @@ class SchedulerService:
 
             task.next_run_at = _calculate_next_run(task.cron_expression)
 
-    async def get_all_tasks(self) -> list[dict[str, Any]]:
+    async def get_all_tasks(self) -> List[Dict[str, Any]]:
         """获取所有定时任务（用于调试）"""
         async with db_session_manager.get_session() as db:
             result = await db.execute(select(ScheduledTaskModel))
@@ -248,7 +249,7 @@ class SchedulerService:
 
 
 # 全局调度器实例
-_scheduler: SchedulerService | None = None
+_scheduler: Optional[SchedulerService] = None
 
 
 def get_scheduler() -> SchedulerService:

@@ -162,8 +162,7 @@ async def test_mcp_server_resources_list(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_mcp_server_resources_read(client: AsyncClient):
     """resources/read 应返回资源内容"""
-    from unittest.mock import AsyncMock, patch
-
+    from unittest.mock import patch, AsyncMock
     from mcp.server.lowlevel.helper_types import ReadResourceContents
 
     mock_contents = [ReadResourceContents(

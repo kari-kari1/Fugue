@@ -1,17 +1,17 @@
 """测试配置和fixtures"""
 import asyncio
 import os
-from collections.abc import AsyncGenerator
-
+from typing import AsyncGenerator
 import pytest
 import pytest_asyncio
-from httpx import ASGITransport, AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from httpx import AsyncClient, ASGITransport
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.pool import NullPool
 
-from app.core.database import db_session_manager, get_db
 from app.main import app
+from app.core.database import get_db, db_session_manager
 from app.models.base import Base
+from app.core.config import settings
 
 # 测试数据库URL：优先使用环境变量（CI使用PostgreSQL），否则用SQLite
 TEST_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./test.db")
@@ -42,28 +42,20 @@ def event_loop():
     loop.close()
 
 
-@pytest_asyncio.fixture(scope="session", autouse=True)
-async def setup_database():
-    """在测试会话开始时创建所有表"""
+@pytest_asyncio.fixture(scope="function")
+async def db_session() -> AsyncGenerator[AsyncSession, None]:
+    """创建测试数据库会话"""
+    # 创建表
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    yield
-    # 测试结束后清理
-    async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
 
-
-@pytest_asyncio.fixture(scope="function")
-async def db_session(setup_database) -> AsyncGenerator[AsyncSession, None]:
-    """创建测试数据库会话"""
     # 创建会话
     async with TestSessionLocal() as session:
         yield session
 
-    # 清理所有表的数据（使用 TRUNCATE 避免锁竞争）
+    # 清理表
     async with test_engine.begin() as conn:
-        for table in reversed(Base.metadata.sorted_tables):
-            await conn.execute(table.delete())
+        await conn.run_sync(Base.metadata.drop_all)
 
 
 @pytest_asyncio.fixture(scope="function")
@@ -124,9 +116,8 @@ async def test_user(client: AsyncClient) -> dict:
 async def test_superuser(client: AsyncClient, db_session) -> dict:
     """创建超级管理员用户"""
     import random
-
-    from app.core.security import get_password_hash
     from app.models.user import User
+    from app.core.security import get_password_hash
 
     uid = random.randint(10000, 99999)
     email = f"admin_{uid}@example.com"

@@ -1,18 +1,13 @@
 """内置工具单元测试"""
-from unittest.mock import AsyncMock, MagicMock, patch
-
 import pytest
+from unittest.mock import patch, AsyncMock, MagicMock
 
 from app.engine.tools import (
-    ApiCallTool,
-    CodeExecuteTool,
-    FileReadTool,
-    RecallTool,
-    RememberTool,
-    SearchKnowledgeTool,
-    WebSearchTool,
-    get_tool,
+    WebSearchTool, FileReadTool, CodeExecuteTool, ApiCallTool,
+    RememberTool, RecallTool, SearchKnowledgeTool,
+    _TOOL_REGISTRY, get_tool, execute_tool,
 )
+
 
 # ── WebSearchTool ──────────────────────────────────
 

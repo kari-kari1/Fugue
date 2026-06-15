@@ -1,9 +1,7 @@
 """Task（任务）模型"""
 
 import enum
-
-from sqlalchemy import JSON, Boolean, Column, Float, ForeignKey, Integer, String, Text
-from sqlalchemy import Enum as SQLEnum
+from sqlalchemy import Column, String, Text, Integer, Float, Boolean, ForeignKey, JSON, Enum as SQLEnum
 from sqlalchemy.orm import relationship
 
 from app.models.base import BaseModel
@@ -55,7 +53,7 @@ class Task(BaseModel):
     config = Column(JSON, default=dict, nullable=True)
 
     # 关系 - 明确指定外键以避免歧义
-    crew = relationship("Crew", back_populates="tasks", foreign_keys="[Task.crew_id]",
+    crew = relationship("Crew", back_populates="tasks", foreign_keys="[Task.crew_id]", 
                        primaryjoin="Crew.id==Task.crew_id")
     agent = relationship("Agent", back_populates="tasks")
 

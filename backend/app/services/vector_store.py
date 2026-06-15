@@ -3,7 +3,7 @@
 import asyncio
 import logging
 from pathlib import Path
-from typing import Any, Optional
+from typing import List, Dict, Any, Optional
 
 from app.core.config import settings
 
@@ -29,15 +29,17 @@ def get_vector_store() -> Optional['VectorStoreService']:
     if not settings.USE_VECTOR_STORE:
         return None
     global _vector_store
-    if _vector_store is None:
-        try:
-            _vector_store = VectorStoreService()
-        except (ImportError, ModuleNotFoundError) as e:
-            logger.warning("ChromaDB not available, vector store disabled: %s", e)
-            return None
-        except Exception as e:
-            logger.warning("Failed to initialize vector store: %s", e)
-            return None
+    if _vector_store is not None and _vector_store.is_available():
+        return _vector_store
+    # 首次初始化或之前的实例不可用，重新创建
+    try:
+        _vector_store = VectorStoreService()
+    except (ImportError, ModuleNotFoundError) as e:
+        logger.warning("ChromaDB not available, vector store disabled: %s", e)
+        return None
+    except Exception as e:
+        logger.warning("Failed to initialize vector store: %s", e)
+        return None
     return _vector_store
 
 
@@ -85,7 +87,7 @@ class VectorStoreService:
     async def add_documents(
         self,
         knowledge_base_id: str,
-        documents: list[dict[str, Any]],
+        documents: List[Dict[str, Any]],
     ):
         """添加文档到向量库
 
@@ -119,8 +121,8 @@ class VectorStoreService:
         knowledge_base_id: str,
         query: str,
         top_k: int = 5,
-        filters: dict[str, Any] | None = None,
-    ) -> list[dict[str, Any]]:
+        filters: Optional[Dict[str, Any]] = None,
+    ) -> List[Dict[str, Any]]:
         """搜索相似文档
 
         Args:
@@ -138,7 +140,7 @@ class VectorStoreService:
         query_embedding = await asyncio.to_thread(model.encode, query)
         query_embedding = query_embedding.tolist()
 
-        kwargs: dict[str, Any] = {
+        kwargs: Dict[str, Any] = {
             "query_embeddings": [query_embedding],
             "n_results": top_k,
         }
@@ -160,7 +162,7 @@ class VectorStoreService:
     async def delete_documents(
         self,
         knowledge_base_id: str,
-        document_ids: list[str],
+        document_ids: List[str],
     ):
         """删除向量库中的文档"""
         if not document_ids:
@@ -178,7 +180,7 @@ class VectorStoreService:
             name=collection_name,
         )
 
-    async def get_collection_stats(self, knowledge_base_id: str) -> dict[str, Any]:
+    async def get_collection_stats(self, knowledge_base_id: str) -> Dict[str, Any]:
         """获取集合统计信息"""
         collection = await self.get_collection(knowledge_base_id)
         count = await asyncio.to_thread(collection.count)
@@ -225,8 +227,8 @@ class VectorStoreService:
         query: str,
         top_k: int = 5,
         semantic_weight: float = 0.7,
-        filters: dict[str, Any] = None,
-    ) -> list[dict[str, Any]]:
+        filters: Dict[str, Any] = None,
+    ) -> list[Dict[str, Any]]:
         """混合检索：向量语义 + BM25 关键词，加权合并
 
         Args:

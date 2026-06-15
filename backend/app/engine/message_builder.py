@@ -5,13 +5,14 @@
 """
 
 import logging
+from typing import Dict, List, Optional, Tuple
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.engine.tools import get_anthropic_tools, get_openai_tools, get_plugin_tool_schemas
 from app.models.agent import Agent
 from app.models.execution import Execution
 from app.models.task import Task
+from app.engine.tools import get_openai_tools, get_anthropic_tools, get_plugin_tool_schemas
 from app.services.event_publisher import event_publisher
 
 logger = logging.getLogger(__name__)
@@ -23,15 +24,15 @@ async def prepare_task_context(
     execution: Execution,
     task: Task,
     agent: Agent,
-    task_outputs: dict[str, str],
+    task_outputs: Dict[str, str],
     attempt: int,
     max_retries: int,
-) -> tuple[list, object, list, bool, int, str]:
+) -> Tuple[list, object, list, bool, int, str]:
     """准备任务执行上下文。
 
     Returns: (messages, llm, tool_schemas, is_anthropic, timeout, effective_model)
     """
-    from app.engine.llm_provider import MockProvider, get_llm_provider, select_degraded_model
+    from app.engine.llm_provider import get_llm_provider, MockProvider, select_degraded_model
 
     # 构建上下文
     context_parts = []
@@ -108,7 +109,7 @@ def build_tool_schemas(agent: Agent, is_anthropic: bool) -> list:
         tool_schemas = (tool_schemas or []) + plugin_schemas
 
     if not agent_tool_names and not tool_schemas:
-        builtin = get_openai_tools(["web_search", "file_read", "file_write", "code_execute", "api_call", "text_analysis"])
+        builtin = get_openai_tools(["web_search", "file_read", "file_write", "code_execute", "api_call", "text_analysis", "pdf_create", "remember", "recall", "search_knowledge"])
         if builtin:
             tool_schemas = builtin
 

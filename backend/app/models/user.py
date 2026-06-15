@@ -1,6 +1,6 @@
 """用户模型"""
 
-from sqlalchemy import Boolean, Column, String
+from sqlalchemy import Column, String, Boolean
 from sqlalchemy.orm import relationship
 
 from app.models.base import BaseModel

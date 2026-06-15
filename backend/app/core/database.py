@@ -2,12 +2,11 @@
 
 import asyncio
 import logging
-from collections.abc import AsyncGenerator
-from contextlib import asynccontextmanager
-
-from sqlalchemy import event
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from typing import AsyncGenerator, Optional
+from sqlalchemy import event, text
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
+from contextlib import asynccontextmanager
 
 from app.core.config import settings
 
@@ -64,7 +63,7 @@ def get_engine():
                 max_overflow=10,
                 pool_pre_ping=True,
             )
-            logger.info("PostgreSQL engine initialized")
+            logger.info(f"PostgreSQL engine initialized")
     return _engine
 
 
@@ -281,9 +280,9 @@ async def _migrate_sqlite_columns(engine):
                 if 'recency_weight' not in mem_cols:
                     await conn.execute(sa.text("ALTER TABLE agent_memories ADD COLUMN recency_weight FLOAT DEFAULT 1.0"))
                     logger.info("Migration: added 'recency_weight' column to agent_memories table")
-            except Exception:
+            except Exception as e:
                 # agent_memories 表可能尚不存在（首次运行）
-                pass
+                logger.debug(f"Migration check for agent_memories skipped (table may not exist yet): {e}")
 
     except Exception as e:
         logger.warning(f"Migration check failed (may be first run): {e}")

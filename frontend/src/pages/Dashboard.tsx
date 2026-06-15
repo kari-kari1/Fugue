@@ -24,7 +24,7 @@ import { StaggerList } from '../components/motion/StaggerList';
 import { staggerItem } from '../lib/motion-variants';
 import { useThemeStore } from '../stores/themeStore';
 import { TunnelTransition } from '../components/motion/TunnelTransition';
-import { setLang, getLang } from '../lib/i18n';
+import { setLang, getLang, t } from '../lib/i18n';
 import toast from 'react-hot-toast';
 
 /* ========== Design Tokens ========== */
@@ -45,16 +45,16 @@ const RADIUS_LG = '20px';
 const RADIUS_FULL = '9999px';
 
 /* ========== Nav links ========== */
-const NAV_LINKS = [
-  { label: 'Templates',   path: '/templates',       icon: LayoutGrid },
-  { label: 'Plugins',     path: '/plugins',          icon: Puzzle },
-  { label: 'MCP Tools',   path: '/mcp-marketplace',  icon: FileCode2 },
-  { label: '知识库',     path: '/knowledge-bases',  icon: BookOpen },
-  { label: '设置',       path: '/settings',         icon: Key },
-  { label: 'Webhooks',    path: '/webhooks',         icon: Globe },
-  { label: 'Schedules',   path: '/schedules',        icon: CalendarClock },
-  { label: 'API Publish', path: '/published',        icon: Rocket },
-] as const;
+const getNavLinks = () => [
+  { label: t('common.nav_templates'),   path: '/templates',       icon: LayoutGrid },
+  { label: t('common.nav_plugins'),     path: '/plugins',          icon: Puzzle },
+  { label: t('common.nav_mcp_tools'),   path: '/mcp-marketplace',  icon: FileCode2 },
+  { label: t('common.nav_knowledge'),   path: '/knowledge-bases',  icon: BookOpen },
+  { label: t('common.nav_settings'),    path: '/settings',         icon: Key },
+  { label: t('common.nav_webhooks'),    path: '/webhooks',         icon: Globe },
+  { label: t('common.nav_schedules'),   path: '/schedules',        icon: CalendarClock },
+  { label: t('common.nav_api_publish'), path: '/published',        icon: Rocket },
+];
 
 /* ========== Spring Physics ========== */
 const SPRING = { type: 'spring' as const, stiffness: 300, damping: 25 };
@@ -160,25 +160,25 @@ const QuickStats: React.FC = () => {
       }}>
         <StatCard
           icon={<BarChart3 style={{ width: 16, height: 16 }} />}
-          label="Total Runs"
+          label={t('dashboard.total_runs')}
           value={stats.total_executions}
           _color="#0071E3"
         />
         <StatCard
           icon={<CheckCircle2 style={{ width: 16, height: 16 }} />}
-          label="Completed"
+          label={t('dashboard.completed')}
           value={stats.completed_executions}
           _color="#34C759"
         />
         <StatCard
           icon={<Zap style={{ width: 16, height: 16 }} />}
-          label="Success Rate"
+          label={t('dashboard.success_rate')}
           value={`${Math.round(stats.success_rate)}%`}
           _color="#FF9500"
         />
         <StatCard
           icon={<DollarSign style={{ width: 16, height: 16 }} />}
-          label="Total Tokens"
+          label={t('dashboard.total_tokens')}
           value={stats.total_tokens > 1000 ? `${(stats.total_tokens / 1000).toFixed(1)}k` : stats.total_tokens}
           _color="#AF52DE"
         />
@@ -362,7 +362,7 @@ const WorkflowCard: React.FC<{
               cursor: 'pointer',
               color: TEXT_TERTIARY,
             }}
-            title="Edit workflow"
+            title={t('dashboard.edit_workflow')}
           >
             <Settings style={{ width: 14, height: 14 }} />
           </motion.button>
@@ -381,7 +381,7 @@ const WorkflowCard: React.FC<{
               cursor: 'pointer',
               color: '#FF3B30',
             }}
-            title="Delete workflow"
+            title={t('dashboard.delete_workflow')}
           >
             <Trash2 style={{ width: 14, height: 14 }} />
           </motion.button>
@@ -603,7 +603,7 @@ const Dashboard: React.FC = () => {
               flex: 1,
               justifyContent: 'center',
             }}>
-              {NAV_LINKS.map((link) => (
+              {getNavLinks().map((link) => (
                 <NavLink key={link.path} {...link} />
               ))}
             </nav>
@@ -627,7 +627,7 @@ const Dashboard: React.FC = () => {
                 padding: '6px 8px',
                 borderRadius: '6px',
               }}
-              title="Switch Language"
+              title={t('common.switch_language')}
             >
               {lang === 'zh' ? 'EN' : '中文'}
             </motion.button>
@@ -656,7 +656,7 @@ const Dashboard: React.FC = () => {
                 display: 'flex',
                 alignItems: 'center',
               }}
-              title="Settings"
+              title={t('common.settings')}
             >
               <Settings style={{ width: 18, height: 18 }} />
             </motion.button>
@@ -866,7 +866,7 @@ const Dashboard: React.FC = () => {
               gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
               gap: '12px',
             }}>
-              {NAV_LINKS.map((link) => (
+              {getNavLinks().map((link) => (
                 <motion.button
                   key={link.path}
                   onClick={() => navigate(link.path)}

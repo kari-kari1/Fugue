@@ -9,6 +9,7 @@ import shutil
 import sys
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -26,8 +27,8 @@ class SandboxConfig:
     """沙箱配置"""
     enable_filesystem_isolation: bool = True
     enable_network_isolation: bool = False
-    allowed_paths: list[str] = field(default_factory=list)
-    blocked_commands: list[str] = field(default_factory=lambda: [
+    allowed_paths: List[str] = field(default_factory=list)
+    blocked_commands: List[str] = field(default_factory=lambda: [
         "rm -rf /",
         "rm -rf /*",
         "dd if=",
@@ -49,7 +50,7 @@ class SandboxManager:
     """
 
     def __init__(self):
-        self.available_sandboxes: list[SandboxType] = []
+        self.available_sandboxes: List[SandboxType] = []
         self._detect_available_sandboxes()
 
     # ── 沙箱检测 ─────────────────────────────────────────
@@ -95,7 +96,7 @@ class SandboxManager:
 
     # ── 命令验证 ─────────────────────────────────────────
 
-    def validate_command(self, command: str, config: SandboxConfig) -> str | None:
+    def validate_command(self, command: str, config: SandboxConfig) -> Optional[str]:
         """验证命令是否安全。
 
         Args:
@@ -135,7 +136,7 @@ class SandboxManager:
         command: str,
         workspace: str,
         config: SandboxConfig,
-    ) -> list[str]:
+    ) -> List[str]:
         """构建 bubblewrap 执行命令。
 
         Args:
@@ -146,7 +147,7 @@ class SandboxManager:
         Returns:
             完整的 bwrap 命令列表（可直接传给 asyncio.create_subprocess_exec）
         """
-        cmd: list[str] = [
+        cmd: List[str] = [
             "bwrap",
             "--unshare-all",           # 隔离所有命名空间
             "--die-with-parent",       # 父进程退出时终止
@@ -182,7 +183,7 @@ class SandboxManager:
         command: str,
         workspace: str,
         config: SandboxConfig,
-    ) -> list[str]:
+    ) -> List[str]:
         """构建 Docker 执行命令。
 
         Args:
@@ -193,7 +194,7 @@ class SandboxManager:
         Returns:
             完整的 docker run 命令列表
         """
-        cmd: list[str] = [
+        cmd: List[str] = [
             "docker", "run", "--rm",
             "--network", "none" if config.enable_network_isolation else "bridge",
             "--memory", f"{config.max_memory_mb}m",
@@ -221,9 +222,9 @@ class SandboxManager:
         self,
         command: str,
         workspace: str,
-        config: SandboxConfig | None = None,
-        sandbox_type: SandboxType | None = None,
-    ) -> dict:
+        config: Optional[SandboxConfig] = None,
+        sandbox_type: Optional[SandboxType] = None,
+    ) -> Dict:
         """在沙箱中执行命令。
 
         Args:
@@ -295,7 +296,7 @@ class SandboxManager:
                 "sandbox_type": sandbox_type.value,
             }
 
-        except TimeoutError:
+        except asyncio.TimeoutError:
             logger.warning(
                 f"[SANDBOX] 命令超时 ({config.max_execution_time}s): {command[:100]}"
             )
@@ -344,7 +345,7 @@ class SandboxManager:
 
 # ── 全局单例 ──────────────────────────────────────────────
 
-_manager_instance: SandboxManager | None = None
+_manager_instance: Optional[SandboxManager] = None
 
 
 def get_sandbox_manager() -> SandboxManager:
