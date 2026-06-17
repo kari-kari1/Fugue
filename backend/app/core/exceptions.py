@@ -6,7 +6,7 @@
 
 import logging
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
@@ -79,7 +79,7 @@ class AppError(Exception):
         self,
         code: ErrorCode,
         message: str,
-        detail: Optional[Any] = None,
+        detail: Any | None = None,
     ):
         self.code = code
         self.message = message
@@ -106,7 +106,7 @@ class ConflictError(AppError):
 class ValidationError(AppError):
     """输入校验失败"""
 
-    def __init__(self, message: str, detail: Optional[Any] = None):
+    def __init__(self, message: str, detail: Any | None = None):
         super().__init__(code=ErrorCode.VALIDATION_ERROR, message=message, detail=detail)
 
 

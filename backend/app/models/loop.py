@@ -1,7 +1,6 @@
 """循环配置模型"""
 
-import uuid
-from sqlalchemy import Column, String, JSON, ForeignKey, Integer, Boolean
+from sqlalchemy import JSON, Boolean, Column, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 
 from app.models.base import BaseModel

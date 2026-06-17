@@ -1,6 +1,5 @@
 """Webhook模型测试"""
 
-import pytest
 from app.models.webhook import Webhook
 
 

@@ -1,6 +1,6 @@
 """验证iteration表迁移的测试"""
-import pytest
 from sqlalchemy import create_engine, inspect
+
 from app.core.config import settings
 
 

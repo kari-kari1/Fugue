@@ -1,8 +1,7 @@
 """执行引擎关键函数单元测试"""
-import pytest
-from unittest.mock import patch, AsyncMock, MagicMock
+from unittest.mock import MagicMock
+
 from app.engine.executor import ExecutionEngine
-from app.engine.llm_provider import ToolCall
 
 
 class TestParseTextToolCalls:

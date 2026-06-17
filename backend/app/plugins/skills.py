@@ -8,10 +8,10 @@
 
 import json
 import logging
-import os
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -24,23 +24,23 @@ class SkillDefinition:
     version: str = "1.0.0"
     author: str = ""
     category: str = "general"
-    tags: List[str] = field(default_factory=list)
+    tags: list[str] = field(default_factory=list)
     # 技能参数定义
-    parameters: Dict[str, Any] = field(default_factory=dict)
+    parameters: dict[str, Any] = field(default_factory=dict)
     # 所需工具列表
-    required_tools: List[str] = field(default_factory=list)
+    required_tools: list[str] = field(default_factory=list)
     # Agent 角色提示词模板
     prompt_template: str = ""
     # 任务配置模板
-    task_template: Dict[str, Any] = field(default_factory=dict)
+    task_template: dict[str, Any] = field(default_factory=dict)
     # 执行配置
-    config: Dict[str, Any] = field(default_factory=dict)
+    config: dict[str, Any] = field(default_factory=dict)
     # 评分和统计
     star_count: int = 0
     install_count: int = 0
     verified: bool = False
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "name": self.name,
             "description": self.description,
@@ -63,10 +63,10 @@ class SkillRegistry:
     """技能注册中心 — 管理技能的注册、发现、执行"""
 
     def __init__(self):
-        self._skills: Dict[str, SkillDefinition] = {}
-        self._executors: Dict[str, Callable] = {}
+        self._skills: dict[str, SkillDefinition] = {}
+        self._executors: dict[str, Callable] = {}
 
-    def register(self, skill: SkillDefinition, executor: Optional[Callable] = None):
+    def register(self, skill: SkillDefinition, executor: Callable | None = None):
         """注册技能"""
         self._skills[skill.name] = skill
         if executor:
@@ -78,10 +78,10 @@ class SkillRegistry:
         self._skills.pop(name, None)
         self._executors.pop(name, None)
 
-    def get(self, name: str) -> Optional[SkillDefinition]:
+    def get(self, name: str) -> SkillDefinition | None:
         return self._skills.get(name)
 
-    def list_skills(self, category: Optional[str] = None, tags: Optional[List[str]] = None) -> List[SkillDefinition]:
+    def list_skills(self, category: str | None = None, tags: list[str] | None = None) -> list[SkillDefinition]:
         """列出技能，支持按分类和标签过滤"""
         skills = list(self._skills.values())
         if category:
@@ -90,7 +90,7 @@ class SkillRegistry:
             skills = [s for s in skills if any(t in s.tags for t in tags)]
         return sorted(skills, key=lambda s: (-s.verified, -s.install_count, s.name))
 
-    def search(self, query: str) -> List[SkillDefinition]:
+    def search(self, query: str) -> list[SkillDefinition]:
         """搜索技能"""
         query_lower = query.lower()
         results = []
@@ -101,14 +101,14 @@ class SkillRegistry:
                 results.append(skill)
         return results
 
-    def get_categories(self) -> List[Dict[str, Any]]:
+    def get_categories(self) -> list[dict[str, Any]]:
         """获取技能分类列表及计数"""
-        counts: Dict[str, int] = {}
+        counts: dict[str, int] = {}
         for skill in self._skills.values():
             counts[skill.category] = counts.get(skill.category, 0) + 1
         return [{"id": k, "name": k, "count": v} for k, v in sorted(counts.items())]
 
-    async def execute(self, name: str, params: Dict[str, Any] = None) -> Dict[str, Any]:
+    async def execute(self, name: str, params: dict[str, Any] = None) -> dict[str, Any]:
         """执行技能"""
         skill = self._skills.get(name)
         if not skill:
@@ -219,7 +219,7 @@ BUILTIN_SKILLS = [
 
 # ─── 全局单例 ──────────────────────────────────────────────────────────────
 
-_skill_registry: Optional[SkillRegistry] = None
+_skill_registry: SkillRegistry | None = None
 
 
 def get_skill_registry() -> SkillRegistry:

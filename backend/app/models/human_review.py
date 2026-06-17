@@ -1,8 +1,6 @@
 """Human-in-the-loop 人工审核模型"""
 
-import uuid
-from datetime import datetime, timezone
-from sqlalchemy import Column, String, JSON, ForeignKey, DateTime, Text, Integer
+from sqlalchemy import JSON, Column, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 
 from app.models.base import BaseModel

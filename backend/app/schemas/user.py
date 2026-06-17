@@ -2,7 +2,7 @@
 
 import re
 from datetime import datetime
-from typing import Optional
+
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
@@ -10,7 +10,7 @@ class UserBase(BaseModel):
     """用户基础Schema"""
     email: EmailStr
     username: str = Field(..., min_length=2, max_length=50)
-    full_name: Optional[str] = None
+    full_name: str | None = None
 
     @field_validator("username")
     @classmethod
@@ -46,8 +46,8 @@ class UserLogin(BaseModel):
 
 class UserUpdate(BaseModel):
     """更新用户"""
-    full_name: Optional[str] = None
-    avatar_url: Optional[str] = None
+    full_name: str | None = None
+    avatar_url: str | None = None
 
 
 class UserResponse(UserBase):
@@ -55,7 +55,7 @@ class UserResponse(UserBase):
     id: str
     is_active: bool
     is_superuser: bool
-    avatar_url: Optional[str]
+    avatar_url: str | None
     created_at: datetime
     updated_at: datetime
 

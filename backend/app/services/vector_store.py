@@ -3,7 +3,7 @@
 import asyncio
 import logging
 from pathlib import Path
-from typing import List, Dict, Any, Optional
+from typing import Any, Optional
 
 from app.core.config import settings
 
@@ -87,7 +87,7 @@ class VectorStoreService:
     async def add_documents(
         self,
         knowledge_base_id: str,
-        documents: List[Dict[str, Any]],
+        documents: list[dict[str, Any]],
     ):
         """添加文档到向量库
 
@@ -121,8 +121,8 @@ class VectorStoreService:
         knowledge_base_id: str,
         query: str,
         top_k: int = 5,
-        filters: Optional[Dict[str, Any]] = None,
-    ) -> List[Dict[str, Any]]:
+        filters: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]]:
         """搜索相似文档
 
         Args:
@@ -140,7 +140,7 @@ class VectorStoreService:
         query_embedding = await asyncio.to_thread(model.encode, query)
         query_embedding = query_embedding.tolist()
 
-        kwargs: Dict[str, Any] = {
+        kwargs: dict[str, Any] = {
             "query_embeddings": [query_embedding],
             "n_results": top_k,
         }
@@ -162,7 +162,7 @@ class VectorStoreService:
     async def delete_documents(
         self,
         knowledge_base_id: str,
-        document_ids: List[str],
+        document_ids: list[str],
     ):
         """删除向量库中的文档"""
         if not document_ids:
@@ -180,7 +180,7 @@ class VectorStoreService:
             name=collection_name,
         )
 
-    async def get_collection_stats(self, knowledge_base_id: str) -> Dict[str, Any]:
+    async def get_collection_stats(self, knowledge_base_id: str) -> dict[str, Any]:
         """获取集合统计信息"""
         collection = await self.get_collection(knowledge_base_id)
         count = await asyncio.to_thread(collection.count)
@@ -227,8 +227,8 @@ class VectorStoreService:
         query: str,
         top_k: int = 5,
         semantic_weight: float = 0.7,
-        filters: Dict[str, Any] = None,
-    ) -> list[Dict[str, Any]]:
+        filters: dict[str, Any] = None,
+    ) -> list[dict[str, Any]]:
         """混合检索：向量语义 + BM25 关键词，加权合并
 
         Args:

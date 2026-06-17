@@ -1,13 +1,14 @@
 """工具状态API — 返回内置工具的实现状态和能力信息"""
 
-from typing import Dict, Any, List, Set
+from typing import Any
+
 from fastapi import APIRouter
 
 router = APIRouter()
 
 # ─── 工具注册表 ───
 
-_TOOL_STATUS: Dict[str, Dict[str, Any]] = {
+_TOOL_STATUS: dict[str, dict[str, Any]] = {
     "file_read": {
         "name": "读取文件",
         "implemented": True,
@@ -69,7 +70,7 @@ _TOOL_CAPABLE_PROVIDERS = {
 }
 
 # 模型级别的具体能力 (provider/model -> capabilities)
-_MODEL_CAPABILITIES: Dict[str, List[str]] = {
+_MODEL_CAPABILITIES: dict[str, list[str]] = {
     "openai/gpt-4o":          ["function_calling", "image_generation"],
     "openai/gpt-4o-mini":     ["function_calling", "image_generation"],
     "openai/gpt-4-turbo":     ["function_calling", "image_generation"],
@@ -116,7 +117,7 @@ def _model_supports_tools(provider: str, model: str) -> bool:
     return True
 
 
-def _get_model_capabilities(provider: str, model: str) -> List[str]:
+def _get_model_capabilities(provider: str, model: str) -> list[str]:
     """获取模型的具体能力列表"""
     if not provider or not model:
         return []
@@ -125,7 +126,7 @@ def _get_model_capabilities(provider: str, model: str) -> List[str]:
 
 
 @router.get("/status")
-async def get_tools_status() -> Dict[str, Any]:
+async def get_tools_status() -> dict[str, Any]:
     """获取所有内置工具的状态信息"""
     tools = []
     for tool_id, info in _TOOL_STATUS.items():
@@ -146,7 +147,7 @@ async def get_tools_status() -> Dict[str, Any]:
 
 
 @router.get("/availability/{provider}/{model}")
-async def get_tool_availability(provider: str, model: str) -> Dict[str, Any]:
+async def get_tool_availability(provider: str, model: str) -> dict[str, Any]:
     """检测指定模型对各工具的可用性"""
     model_ok = _model_supports_tools(provider, model)
     model_caps = set(_get_model_capabilities(provider, model))

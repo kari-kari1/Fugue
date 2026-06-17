@@ -1,6 +1,7 @@
 """Skills 数据库模型 — 报告第6章：技能功能扩展"""
 
-from sqlalchemy import Column, String, Text, Boolean, JSON, DateTime, func
+from sqlalchemy import JSON, Boolean, Column, String, Text
+
 from app.models.base import BaseModel
 
 

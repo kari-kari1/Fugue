@@ -1,21 +1,20 @@
 """模板相关API"""
 
-from typing import List, Optional
-from fastapi import APIRouter, HTTPException, status, Query
-from sqlalchemy import select, func, distinct
-from sqlalchemy.ext.asyncio import AsyncSession
-from pydantic import BaseModel
 
-from app.api.deps import DatabaseSession, CurrentUser
-from app.models.template import Template
-from app.models.crew import Crew, ProcessType
+from fastapi import APIRouter, HTTPException, Query, status
+from pydantic import BaseModel
+from sqlalchemy import distinct, func, select
+
+from app.api.deps import CurrentUser, DatabaseSession
 from app.models.agent import Agent
-from app.models.task import Task, OutputType
+from app.models.crew import Crew, ProcessType
+from app.models.task import OutputType, Task
+from app.models.template import Template
 from app.schemas.template import (
     TemplateCreate,
-    TemplateUpdate,
-    TemplateResponse,
     TemplateListResponse,
+    TemplateResponse,
+    TemplateUpdate,
 )
 from app.services.template_marketplace import TemplateMarketplaceService
 
@@ -29,7 +28,7 @@ class RatingRequest(BaseModel):
 
 class ForkRequest(BaseModel):
     """Fork请求"""
-    name: Optional[str] = None
+    name: str | None = None
 
 
 def _template_to_response(template: Template) -> TemplateResponse:
@@ -55,7 +54,7 @@ def _template_to_response(template: Template) -> TemplateResponse:
     )
 
 
-@router.get("/categories", response_model=List[str])
+@router.get("/categories", response_model=list[str])
 async def list_categories(
     db: DatabaseSession,
 ):
@@ -71,10 +70,10 @@ async def list_categories(
 async def list_templates(
     db: DatabaseSession,
     current_user: CurrentUser,
-    category: Optional[str] = None,
-    search: Optional[str] = None,
-    sort_by: Optional[str] = Query(None, pattern="^(popular|newest|recommended)$"),
-    preferred: Optional[str] = Query(None, description="逗号分隔的偏好类别，匹配的模板优先"),
+    category: str | None = None,
+    search: str | None = None,
+    sort_by: str | None = Query(None, pattern="^(popular|newest|recommended)$"),
+    preferred: str | None = Query(None, description="逗号分隔的偏好类别，匹配的模板优先"),
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
 ):
@@ -229,7 +228,7 @@ async def update_template(
 async def get_popular_templates(
     db: DatabaseSession,
     limit: int = Query(10, ge=1, le=50),
-    days: Optional[int] = Query(None, description="时间范围（天）"),
+    days: int | None = Query(None, description="时间范围（天）"),
 ):
     """获取热门模板"""
     service = TemplateMarketplaceService(db)

@@ -1,6 +1,6 @@
 """插件配置模型"""
 
-from sqlalchemy import Column, String, JSON, Boolean, ForeignKey, Text, Integer
+from sqlalchemy import JSON, Boolean, Column, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 
 from app.models.base import BaseModel

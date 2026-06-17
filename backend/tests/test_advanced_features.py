@@ -1,9 +1,9 @@
 """高级功能集成测试 - 端到端验证所有新功能模块"""
 
-from unittest.mock import patch, AsyncMock, MagicMock
+from unittest.mock import AsyncMock, patch
+
 import pytest
 from httpx import AsyncClient
-
 
 # ---- Helper fixture ----
 

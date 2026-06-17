@@ -1,10 +1,10 @@
 """模板市场服务 — 增强模板的分享、收藏、评分功能"""
 
 import logging
-from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
+from typing import Any
 
-from sqlalchemy import select, func, and_
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.template import Template
@@ -22,8 +22,8 @@ class TemplateMarketplaceService:
     async def get_popular_templates(
         self,
         limit: int = 10,
-        days: Optional[int] = None,
-    ) -> List[Dict[str, Any]]:
+        days: int | None = None,
+    ) -> list[dict[str, Any]]:
         """获取热门模板
 
         Args:
@@ -69,7 +69,7 @@ class TemplateMarketplaceService:
             for row in rows
         ]
 
-    async def get_trending_templates(self, limit: int = 10) -> List[Dict[str, Any]]:
+    async def get_trending_templates(self, limit: int = 10) -> list[dict[str, Any]]:
         """获取趋势模板（最近7天使用量增长最快的）
 
         这里简化实现：返回最近创建且使用量较高的模板
@@ -109,7 +109,7 @@ class TemplateMarketplaceService:
         self,
         user_id: str,
         limit: int = 10,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """获取推荐模板（基于用户历史使用）
 
         简化实现：返回用户常用分类的高评分模板
@@ -153,7 +153,7 @@ class TemplateMarketplaceService:
             for row in rows
         ]
 
-    async def star_template(self, template_id: str, user_id: str) -> Dict[str, Any]:
+    async def star_template(self, template_id: str, user_id: str) -> dict[str, Any]:
         """收藏模板"""
         template = await self._get_template(template_id)
         if not template:
@@ -173,8 +173,8 @@ class TemplateMarketplaceService:
         self,
         template_id: str,
         user_id: str,
-        new_name: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        new_name: str | None = None,
+    ) -> dict[str, Any]:
         """Fork模板（复制为自己的模板）"""
         original = await self._get_template(template_id)
         if not original:
@@ -217,7 +217,7 @@ class TemplateMarketplaceService:
         template_id: str,
         user_id: str,
         rating: int,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """评分模板（1-5分）"""
         if rating < 1 or rating > 5:
             return {"success": False, "error": "Rating must be between 1 and 5"}
@@ -256,7 +256,7 @@ class TemplateMarketplaceService:
         user_id: str,
         page: int = 1,
         limit: int = 20,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """获取用户的模板列表"""
         query = (
             select(Template)
@@ -294,7 +294,7 @@ class TemplateMarketplaceService:
             "limit": limit,
         }
 
-    async def toggle_public(self, template_id: str, user_id: str) -> Dict[str, Any]:
+    async def toggle_public(self, template_id: str, user_id: str) -> dict[str, Any]:
         """切换模板的公开/私有状态"""
         template = await self._get_template(template_id)
         if not template:
@@ -311,14 +311,14 @@ class TemplateMarketplaceService:
             "is_public": template.is_public,
         }
 
-    async def _get_template(self, template_id: str) -> Optional[Template]:
+    async def _get_template(self, template_id: str) -> Template | None:
         """获取模板"""
         result = await self.db.execute(
             select(Template).where(Template.id == template_id)
         )
         return result.scalar_one_or_none()
 
-    async def _get_user_top_categories(self, user_id: str, limit: int = 3) -> List[str]:
+    async def _get_user_top_categories(self, user_id: str, limit: int = 3) -> list[str]:
         """获取用户最常用的模板分类"""
         # 这里简化实现：返回预设分类
         return ["AI开发", "数据分析", "内容创作"]

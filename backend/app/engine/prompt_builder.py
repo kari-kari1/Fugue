@@ -1,7 +1,7 @@
 """Prompt 构建器 — 组装发送给 LLM 的消息"""
 
 import logging
-from typing import Dict, Any, List, Optional
+
 from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
@@ -138,7 +138,7 @@ def _build_tool_capability_prompt(workspace_dir: str = None) -> str:
     return "\n".join(parts)
 
 
-def build_messages(agent, task, context_parts: List[str], workspace_dir: str = None) -> List[Dict[str, str]]:
+def build_messages(agent, task, context_parts: list[str], workspace_dir: str = None) -> list[dict[str, str]]:
     """构建 system + user 消息。
 
     Args:
@@ -160,11 +160,11 @@ def build_messages(agent, task, context_parts: List[str], workspace_dir: str = N
 
     # 注入工作空间信息
     if workspace_dir:
-        system += f"\n\n## ⚠️ 工作空间（强制）\n"
+        system += "\n\n## ⚠️ 工作空间（强制）\n"
         system += f"你的工作空间目录是：**{workspace_dir}**\n"
-        system += f"所有文件的读取和写入必须在此目录下进行。\n"
+        system += "所有文件的读取和写入必须在此目录下进行。\n"
         system += f"保存文件时，路径必须以 {workspace_dir} 开头，例如：{workspace_dir}/output.docx\n"
-        system += f"禁止在工作空间以外的任何路径创建或修改文件。\n"
+        system += "禁止在工作空间以外的任何路径创建或修改文件。\n"
 
     # 注入常用路径提示（减少无效搜索）
     import os

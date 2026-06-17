@@ -2,7 +2,33 @@
 
 from fastapi import APIRouter
 
-from app.api.v1 import auth, crews, agents, tasks, executions, demo, validation, templates, websocket, tools, exports, reviews, knowledge_bases, mcp, plugins, api_keys, published, webhooks, schedules, plugins_marketplace, files, iterations, mcp_server, approvals, skills
+from app.api.v1 import (
+    agents,
+    api_keys,
+    approvals,
+    auth,
+    crews,
+    demo,
+    executions,
+    exports,
+    files,
+    iterations,
+    knowledge_bases,
+    mcp,
+    mcp_server,
+    plugins,
+    plugins_marketplace,
+    published,
+    reviews,
+    schedules,
+    skills,
+    tasks,
+    templates,
+    tools,
+    validation,
+    webhooks,
+    websocket,
+)
 
 api_router = APIRouter()
 

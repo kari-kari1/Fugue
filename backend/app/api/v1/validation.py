@@ -1,13 +1,13 @@
 """DAG校验API — 执行前验证工作流结构"""
 
-from typing import List, Dict, Set
 from collections import defaultdict
-from pydantic import BaseModel
+
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from app.api.deps import DatabaseSession, CurrentUser
+from app.api.deps import CurrentUser, DatabaseSession
 from app.models.crew import Crew
 
 router = APIRouter()
@@ -34,8 +34,8 @@ def _validate_crew_structure(crew: Crew) -> dict:
     """校验 Crew 的 DAG 结构，返回 {errors, warnings, stats}"""
     agents = crew.agents or []
     tasks = crew.tasks or []
-    errors: List[str] = []
-    warnings: List[str] = []
+    errors: list[str] = []
+    warnings: list[str] = []
 
     if not tasks:
         errors.append("工作流中没有任务")
@@ -62,8 +62,8 @@ def _validate_crew_structure(crew: Crew) -> dict:
     # 环检测（Kahn 拓扑排序）
     if tasks:
         task_map = {t.id: t for t in tasks}
-        in_degree: Dict[str, int] = defaultdict(int)
-        dependents: Dict[str, List[str]] = defaultdict(list)
+        in_degree: dict[str, int] = defaultdict(int)
+        dependents: dict[str, list[str]] = defaultdict(list)
         for t in tasks:
             deps = [d for d in (t.context_task_ids or []) if d in task_map]
             in_degree[t.id] = len(deps)

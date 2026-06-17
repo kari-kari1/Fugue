@@ -1,10 +1,43 @@
 """记忆服务单元测试"""
+
 import pytest
-from unittest.mock import patch, AsyncMock, MagicMock
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.memory import AgentMemory, MemoryConfig
+from app.models.agent import Agent
+from app.models.crew import Crew
+from app.models.user import User
 from app.services.memory_service import MemoryService
+
+
+async def create_test_agent(db_session: AsyncSession, agent_id: str) -> None:
+    """创建测试用的 agent 记录（满足外键约束）"""
+    # 先创建一个 user
+    user = User(
+        id=f"user-for-{agent_id}",
+        email=f"{agent_id}@test.com",
+        username=f"user-{agent_id}",
+        hashed_password="hashed",
+    )
+    db_session.add(user)
+
+    # 创建一个 crew
+    crew = Crew(
+        id=f"crew-for-{agent_id}",
+        name=f"Test Crew for {agent_id}",
+        user_id=user.id,
+    )
+    db_session.add(crew)
+
+    # 创建 agent
+    agent = Agent(
+        id=agent_id,
+        crew_id=crew.id,
+        name=f"Test Agent {agent_id}",
+        role="tester",
+        goal="Test goal",
+    )
+    db_session.add(agent)
+    await db_session.flush()
 
 
 @pytest.mark.asyncio
@@ -12,6 +45,9 @@ async def test_save_and_recall_memory(db_session: AsyncSession):
     """测试保存记忆后能通过 recall 检索到"""
     service = MemoryService(db_session)
     agent_id = "agent-test-001"
+
+    # 先创建 agent（满足外键约束）
+    await create_test_agent(db_session, agent_id)
 
     # 保存一条记忆
     memory = await service.save_memory(
@@ -42,6 +78,9 @@ async def test_save_multiple_memories(db_session: AsyncSession):
     """测试保存多条记忆并验证全部可检索"""
     service = MemoryService(db_session)
     agent_id = "agent-multi-001"
+
+    # 先创建 agent（满足外键约束）
+    await create_test_agent(db_session, agent_id)
 
     # 保存多条记忆
     await service.save_memory(agent_id, "项目使用 Python 3.11", "conclusion", 3.0)
@@ -75,6 +114,9 @@ async def test_vector_store_search_fallback(db_session: AsyncSession):
     """测试向量存储不可用时检索走 DB 降级路径"""
     service = MemoryService(db_session)
     agent_id = "agent-vs-fallback"
+
+    # 先创建 agent（满足外键约束）
+    await create_test_agent(db_session, agent_id)
 
     # 保存一条记忆（vector store 会尝试写入但可能失败，不影响 DB）
     await service.save_memory(
@@ -126,6 +168,9 @@ async def test_save_memory_scoped(db_session: AsyncSession):
     service = MemoryService(db_session)
     agent_id = "agent-scoped-001"
 
+    # 先创建 agent（满足外键约束）
+    await create_test_agent(db_session, agent_id)
+
     scope = MemoryService.build_scope("crew-001", "agent", agent_id)
     await service.save_memory_scoped(
         agent_id=agent_id,
@@ -154,6 +199,10 @@ async def test_build_scope():
 async def test_recall_by_scope_prefix(db_session: AsyncSession):
     """测试按 scope 前缀检索可匹配多个实体"""
     service = MemoryService(db_session)
+
+    # 先创建 agents（满足外键约束）
+    await create_test_agent(db_session, "agent-a")
+    await create_test_agent(db_session, "agent-b")
 
     # 保存不同 scope 的记忆
     scope_a = MemoryService.build_scope("crew-scope", "agent", "agent-a")
@@ -185,6 +234,10 @@ async def test_memory_tree(db_session: AsyncSession):
 async def test_forget_by_scope(db_session: AsyncSession):
     """测试按 scope 删除记忆"""
     service = MemoryService(db_session)
+
+    # 先创建 agent（满足外键约束）
+    await create_test_agent(db_session, "agent-del")
+
     forget_scope = MemoryService.build_scope("crew-forget", "agent", "agent-del")
 
     await service.save_memory_scoped("agent-del", "将被删除的记忆", forget_scope)

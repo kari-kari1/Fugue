@@ -1,7 +1,7 @@
 """审批相关 Schema"""
 
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -11,13 +11,13 @@ class ApprovalRequestResponse(BaseModel):
     request_id: str
     execution_id: str
     tool_name: str
-    tool_args: Dict[str, Any]
+    tool_args: dict[str, Any]
     risk_level: str
     status: str
-    approved_by: Optional[str] = None
-    approved_at: Optional[datetime] = None
-    rejected_at: Optional[datetime] = None
-    reject_reason: Optional[str] = None
+    approved_by: str | None = None
+    approved_at: datetime | None = None
+    rejected_at: datetime | None = None
+    reject_reason: str | None = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -25,8 +25,8 @@ class ApprovalRequestResponse(BaseModel):
 
 class ApprovalAction(BaseModel):
     """审批操作请求"""
-    reason: Optional[str] = Field(None, max_length=2000, description="审批/拒绝原因")
-    approved_by: Optional[str] = Field(None, max_length=256, description="审批人标识")
+    reason: str | None = Field(None, max_length=2000, description="审批/拒绝原因")
+    approved_by: str | None = Field(None, max_length=256, description="审批人标识")
 
 
 class ApprovalModeConfig(BaseModel):

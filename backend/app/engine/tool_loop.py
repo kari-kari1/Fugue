@@ -9,15 +9,14 @@ import json
 import logging
 import re
 from datetime import datetime
-from typing import Dict, List, Tuple
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.engine.llm_provider import LLMResponse, update_provider_health
+from app.engine.message_builder import append_tool_messages
 from app.models.agent import Agent
 from app.models.execution import Execution, ExecutionStatus
 from app.models.task import Task
-from app.engine.llm_provider import LLMResponse, update_provider_health
-from app.engine.message_builder import append_tool_messages
 from app.services.event_publisher import event_publisher
 
 logger = logging.getLogger(__name__)
@@ -35,7 +34,7 @@ async def run_tool_call_loop(
     is_anthropic: bool,
     timeout: int,
     effective_model: str,
-) -> Tuple[str, list, int, float]:
+) -> tuple[str, list, int, float]:
     """运行多轮工具调用循环。
 
     Returns: (final_content, all_tool_calls, total_tokens, total_cost)
@@ -84,7 +83,7 @@ async def run_tool_call_loop(
                 elif etype == "done":
                     llm_response = event.data
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.warning("[EXECUTOR] LLM streaming timeout (%ds)", timeout)
             raise
         except Exception as stream_err:
@@ -250,7 +249,7 @@ async def run_tool_call_loop(
                 to = str(tc_entry.get("output", ""))[:300]
                 tool_summary.append(f"[{tn}] {to}")
             final_content = (
-                f"[工具调用已达上限，以下为最近的工具结果]\n\n" + "\n\n".join(tool_summary)
+                "[工具调用已达上限，以下为最近的工具结果]\n\n" + "\n\n".join(tool_summary)
                 if tool_summary else "(工具调用轮次超限，未获得有效结果)"
             )
 
@@ -266,7 +265,7 @@ async def check_approval_and_execute(engine, db, execution, tc, all_tool_calls: 
     crew_approval_mode = getattr(_crew, 'approval_mode', 'semi_auto') or 'semi_auto'
 
     if crew_approval_mode != 'full_auto':
-        from app.services.approval_manager import get_approval_manager, ApprovalMode
+        from app.services.approval_manager import ApprovalMode, get_approval_manager
         approval_mgr = get_approval_manager()
         mode = ApprovalMode(crew_approval_mode)
         if approval_mgr.requires_approval(mode=mode, tool_name=tc.name):

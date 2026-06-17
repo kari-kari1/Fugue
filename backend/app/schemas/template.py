@@ -1,5 +1,6 @@
-from typing import List, Optional, Any, Dict
 from datetime import datetime
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 
@@ -11,7 +12,7 @@ class AgentConfig(BaseModel):
     backstory: str
     llm_provider: str = "openai"
     llm_model: str = "gpt-4o"
-    tools: List[str] = []
+    tools: list[str] = []
 
 
 class TaskConfig(BaseModel):
@@ -21,21 +22,21 @@ class TaskConfig(BaseModel):
     expected_output: str
     output_type: str = "text"
     agent_index: int  # 索引 agents_config 中的 Agent
-    depends_on: List[int] = []  # 依赖的 task 索引
+    depends_on: list[int] = []  # 依赖的 task 索引
 
 
 class TemplateBase(BaseModel):
     """模板基础字段"""
     name: str = Field(..., min_length=1, max_length=100)
-    description: Optional[str] = None
+    description: str | None = None
     category: str = Field(..., pattern="^(research|code|analysis|document|literature)$")
     icon: str = "📋"
     difficulty: str = Field("intermediate", pattern="^(beginner|intermediate|advanced)$")
-    agents_config: List[AgentConfig]
-    tasks_config: List[TaskConfig]
-    connections_config: Optional[List[Any]] = []
+    agents_config: list[AgentConfig]
+    tasks_config: list[TaskConfig]
+    connections_config: list[Any] | None = []
     process_type: str = Field("sequential", pattern="^(sequential|parallel)$")
-    tags: List[str] = []
+    tags: list[str] = []
 
 
 class TemplateCreate(TemplateBase):
@@ -45,16 +46,16 @@ class TemplateCreate(TemplateBase):
 
 class TemplateUpdate(BaseModel):
     """更新模板（所有字段可选）"""
-    name: Optional[str] = Field(None, min_length=1, max_length=100)
-    description: Optional[str] = None
-    category: Optional[str] = Field(None, pattern="^(research|code|analysis|document|literature)$")
-    icon: Optional[str] = None
-    difficulty: Optional[str] = Field(None, pattern="^(beginner|intermediate|advanced)$")
-    agents_config: Optional[List[AgentConfig]] = None
-    tasks_config: Optional[List[TaskConfig]] = None
-    connections_config: Optional[List[Any]] = None
-    process_type: Optional[str] = Field(None, pattern="^(sequential|parallel)$")
-    tags: Optional[List[str]] = None
+    name: str | None = Field(None, min_length=1, max_length=100)
+    description: str | None = None
+    category: str | None = Field(None, pattern="^(research|code|analysis|document|literature)$")
+    icon: str | None = None
+    difficulty: str | None = Field(None, pattern="^(beginner|intermediate|advanced)$")
+    agents_config: list[AgentConfig] | None = None
+    tasks_config: list[TaskConfig] | None = None
+    connections_config: list[Any] | None = None
+    process_type: str | None = Field(None, pattern="^(sequential|parallel)$")
+    tags: list[str] | None = None
 
 
 class TemplateResponse(TemplateBase):
@@ -63,16 +64,16 @@ class TemplateResponse(TemplateBase):
     use_count: int
     rating: float
     is_builtin: bool
-    user_id: Optional[str] = None
+    user_id: str | None = None
     created_at: datetime
-    updated_at: Optional[datetime] = None
+    updated_at: datetime | None = None
 
     model_config = {"from_attributes": True}
 
 
 class TemplateListResponse(BaseModel):
     """模板列表响应"""
-    items: List[TemplateResponse]
+    items: list[TemplateResponse]
     total: int
     page: int
     limit: int

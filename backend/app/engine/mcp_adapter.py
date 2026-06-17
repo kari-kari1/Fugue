@@ -3,10 +3,9 @@
 支持连接 MCP Server，自动发现和调用其暴露的工具。
 """
 
-import asyncio
 import logging
-from typing import Dict, Any, List, Optional
 from contextlib import AsyncExitStack
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -15,17 +14,17 @@ class MCPToolAdapter:
     """MCP 工具适配器 — 管理与 MCP Server 的连接和工具调用"""
 
     def __init__(self):
-        self._connections: Dict[str, Any] = {}  # server_id -> session
-        self._tools_cache: Dict[str, List[Dict[str, Any]]] = {}  # server_id -> tools
+        self._connections: dict[str, Any] = {}  # server_id -> session
+        self._tools_cache: dict[str, list[dict[str, Any]]] = {}  # server_id -> tools
         self._exit_stack = AsyncExitStack()
 
     async def connect_server(
         self,
         server_id: str,
         command: str,
-        args: List[str] = None,
-        env: Dict[str, str] = None,
-    ) -> List[Dict[str, Any]]:
+        args: list[str] = None,
+        env: dict[str, str] = None,
+    ) -> list[dict[str, Any]]:
         """连接到 MCP Server 并发现其工具。
 
         Args:
@@ -82,8 +81,8 @@ class MCPToolAdapter:
         self,
         server_id: str,
         tool_name: str,
-        arguments: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        arguments: dict[str, Any],
+    ) -> dict[str, Any]:
         """调用 MCP Server 上的工具。
 
         Args:
@@ -118,11 +117,11 @@ class MCPToolAdapter:
             logger.error(f"MCP tool call failed: {server_id}/{tool_name}: {e}")
             return {"success": False, "error": str(e)}
 
-    def get_all_tools(self) -> Dict[str, List[Dict[str, Any]]]:
+    def get_all_tools(self) -> dict[str, list[dict[str, Any]]]:
         """获取所有已连接服务器的工具列表"""
         return dict(self._tools_cache)
 
-    def get_tool_schemas(self, server_id: str = None) -> List[Dict[str, Any]]:
+    def get_tool_schemas(self, server_id: str = None) -> list[dict[str, Any]]:
         """获取工具的 OpenAI function calling 格式 schema。
 
         Args:
@@ -169,7 +168,7 @@ class MCPToolAdapter:
 
 
 # 全局单例
-_mcp_adapter: Optional[MCPToolAdapter] = None
+_mcp_adapter: MCPToolAdapter | None = None
 
 
 def get_mcp_adapter() -> MCPToolAdapter:

@@ -9,7 +9,7 @@
 
 import logging
 import time
-from typing import Callable, Optional
+from collections.abc import Callable
 
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -138,7 +138,7 @@ class MetricsMiddleware(BaseHTTPMiddleware):
 
 # ─── Sentry 集成 ────────────────────────────────────────────────────────────
 
-def init_sentry(dsn: Optional[str] = None, environment: str = "development"):
+def init_sentry(dsn: str | None = None, environment: str = "development"):
     """初始化 Sentry 错误追踪（可选，需安装 sentry-sdk）"""
     if not dsn:
         logger.info("Sentry DSN not configured, skipping Sentry initialization")

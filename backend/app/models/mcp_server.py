@@ -1,6 +1,6 @@
 """MCP Server 配置模型"""
 
-from sqlalchemy import Column, String, JSON, Boolean, ForeignKey
+from sqlalchemy import JSON, Boolean, Column, ForeignKey, String
 
 from app.models.base import BaseModel
 

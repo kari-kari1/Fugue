@@ -1,9 +1,10 @@
 """定时任务管理API"""
 
 import logging
-from typing import List, Optional, Dict, Any
 from datetime import datetime
-from fastapi import APIRouter, HTTPException, Depends
+from typing import Any
+
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from app.api.deps import CurrentUser
@@ -21,7 +22,7 @@ class ScheduleCreate(BaseModel):
     crew_id: str = Field(..., description="工作流ID")
     cron_expression: str = Field(..., description="Cron表达式（5位：分 时 日 月 周）")
     timezone: str = Field(default="UTC", description="时区")
-    inputs: Dict[str, Any] = Field(default_factory=dict, description="执行输入")
+    inputs: dict[str, Any] = Field(default_factory=dict, description="执行输入")
 
 
 class ScheduleResponse(BaseModel):
@@ -30,10 +31,10 @@ class ScheduleResponse(BaseModel):
     crew_id: str
     cron_expression: str
     timezone: str
-    inputs: Dict[str, Any]
+    inputs: dict[str, Any]
     is_active: bool
-    last_run_at: Optional[str]
-    next_run_at: Optional[str]
+    last_run_at: str | None
+    next_run_at: str | None
     run_count: int
     failure_count: int
 
@@ -41,7 +42,7 @@ class ScheduleResponse(BaseModel):
 # ─── API端点 ───
 
 
-@router.get("/", response_model=List[ScheduleResponse])
+@router.get("/", response_model=list[ScheduleResponse])
 async def list_schedules(
     current_user: CurrentUser,
 ):

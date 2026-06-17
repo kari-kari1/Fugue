@@ -4,18 +4,16 @@
 """
 
 import asyncio
-import sys
 import os
-from datetime import datetime, timedelta
+import sys
 
 # 添加项目路径
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from app.core.database import AsyncSessionLocal
 from app.core.security import get_password_hash
-from app.models import User, Crew, Agent, Task, Template
+from app.models import Agent, Crew, Task, User
 from app.services.template_seeder import seed_templates
-
 
 # 演示用户配置
 DEMO_USERS = [

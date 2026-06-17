@@ -1,6 +1,6 @@
 """API Key模型"""
 
-from sqlalchemy import Column, String, Boolean, ForeignKey, DateTime, JSON, Integer
+from sqlalchemy import JSON, Boolean, Column, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 
 from app.models.base import BaseModel

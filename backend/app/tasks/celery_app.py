@@ -1,6 +1,7 @@
 # backend/app/tasks/celery_app.py
 
 from celery import Celery
+
 from app.core.config import settings
 
 # 创建Celery应用

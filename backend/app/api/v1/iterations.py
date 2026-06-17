@@ -3,11 +3,11 @@
 import asyncio
 import logging
 from datetime import datetime
-from typing import List
-from fastapi import APIRouter, HTTPException, status
-from sqlalchemy import select, func
 
-from app.api.deps import DatabaseSession, CurrentUser
+from fastapi import APIRouter, HTTPException, status
+from sqlalchemy import func, select
+
+from app.api.deps import CurrentUser, DatabaseSession
 from app.models.execution import Execution, ExecutionStatus, TaskExecution
 from app.models.iteration import Iteration, IterationMode, IterationStatus
 from app.schemas.iteration import IterationCreate, IterationResponse
@@ -107,7 +107,7 @@ async def _build_context_snapshot(execution: Execution, db: DatabaseSession) -> 
 
 @router.get(
     "/{execution_id}/iterations",
-    response_model=List[IterationResponse],
+    response_model=list[IterationResponse],
 )
 async def list_iterations(
     execution_id: str,
@@ -194,8 +194,8 @@ async def refine_execution(
 
     # 后台执行迭代优化
     async def _run_iteration_bg():
-        from app.engine.executor import ExecutionEngine
         from app.core.database import db_session_manager
+        from app.engine.executor import ExecutionEngine
 
         try:
             # 从 execution 获取 LLM 配置
@@ -225,7 +225,7 @@ async def refine_execution(
             )
             logger.info(f"Iteration {iter_id} completed successfully")
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.error(f"Iteration {iter_id} timed out after 600s")
             try:
                 async with db_session_manager.get_session() as bg_db:

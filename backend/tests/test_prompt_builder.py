@@ -1,13 +1,13 @@
 """Prompt 构建器单元测试"""
+from unittest.mock import MagicMock
+
 import pytest
-from unittest.mock import MagicMock, AsyncMock, patch
 
 from app.engine.prompt_builder import (
-    build_messages,
     _build_tool_capability_prompt,
     build_memory_context,
+    build_messages,
 )
-
 
 # ── 辅助工厂函数 ──────────────────────────────────
 

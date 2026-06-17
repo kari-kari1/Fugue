@@ -1,10 +1,9 @@
 """事件发布服务 - 发布执行事件到WebSocket"""
 
-import json
 import logging
-from datetime import datetime, timezone
-from typing import Optional, Dict, Any
+from datetime import UTC, datetime
 from enum import Enum
+from typing import Any
 
 from app.core.websocket_manager import ws_manager
 
@@ -55,14 +54,14 @@ class EventPublisher:
         self,
         execution_id: str,
         event_type: EventType,
-        data: Optional[Dict[str, Any]] = None,
+        data: dict[str, Any] | None = None,
         agent_name: str = "",
         task_name: str = "",
     ):
         """发布事件到WebSocket"""
         message = {
             "type": event_type.value,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "execution_id": execution_id,
             "agent_name": agent_name,
             "task_name": task_name,
@@ -95,7 +94,7 @@ class EventPublisher:
         execution_id: str,
         agent_name: str,
         tool_name: str,
-        tool_input: Dict[str, Any],
+        tool_input: dict[str, Any],
     ):
         """发布Agent工具调用事件"""
         await self.publish(
