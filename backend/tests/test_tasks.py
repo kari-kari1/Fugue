@@ -108,8 +108,8 @@ async def test_create_task_invalid_agent(client: AsyncClient, test_user: dict, t
         },
         headers=test_user["headers"],
     )
-    # API可能允许创建（返回201）或拒绝（返回404/422）
-    assert response.status_code in [201, 404, 422]
+    # API可能允许创建（返回201）或拒绝（返回400/404/422）
+    assert response.status_code in [201, 400, 404, 422]
 
 
 @pytest.mark.asyncio

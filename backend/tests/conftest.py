@@ -53,9 +53,11 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
     async with TestSessionLocal() as session:
         yield session
 
-    # 清理表
-    async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+    # 清理表（使用 DELETE 而不是 DROP ALL 以避免 deadlock）
+    async with TestSessionLocal() as session:
+        for table in reversed(Base.metadata.sorted_tables):
+            await session.execute(table.delete())
+        await session.commit()
 
 
 @pytest_asyncio.fixture(scope="function")
