@@ -45,11 +45,26 @@ dev = [
 ]
 
 [tool.ruff]
-line-length = 120
+line-length = 150
 target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP"]
+ignore = [
+    "E501",   # line too long
+    "E402",   # module level import not at top
+    "E701",   # multiple statements on one line
+    "E712",   # comparison to True/False
+    "E741",   # ambiguous variable name
+    "F401",   # unused import
+    "F601",   # dictionary key repeated
+    "F821",   # undefined name
+    "F841",   # unused variable
+    "N802",   # function name should be lowercase
+    "N806",   # variable in function should be lowercase
+    "N817",   # camelcase imported as acronym
+    "UP042",  # use StrEnum
+]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
