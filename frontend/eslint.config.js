@@ -33,6 +33,8 @@ export default defineConfig([
       'react-hooks/purity': 'off',
       'react-hooks/declaring-dependencies': 'off',
       'react-hooks/reading-after-await': 'off',
+      'react-hooks/static-components': 'off',
+      'react-hooks/incompatible-library': 'off',
     },
   },
   {

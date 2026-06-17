@@ -10,6 +10,16 @@ interface TextRevealProps {
   delay?: number;
 }
 
+// Pre-define motion components outside of render
+const MotionComponents = {
+  h1: motion.h1,
+  h2: motion.h2,
+  h3: motion.h3,
+  p: motion.p,
+  span: motion.span,
+  div: motion.div,
+} as const;
+
 export const TextReveal: React.FC<TextRevealProps> = ({
   children,
   as = 'h1',
@@ -17,7 +27,7 @@ export const TextReveal: React.FC<TextRevealProps> = ({
   style,
   delay = 0,
 }) => {
-  const Component = motion.create(as);
+  const Component = MotionComponents[as] || MotionComponents.h1;
 
   return (
     <Component
